@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="aod_layout_title">屏幕布局</string>
+    <string name="aod_layout_edit">自定义显示布局</string>
+    <string name="aod_layout_summary">分别编排各页面、方向下的时间、日期、通知、小部件及电量提示</string>
+    <string name="aod_layout_target">编辑的布局</string>
+    <string name="aod_layout_module">当前模块</string>
+    <string name="aod_layout_enabled">启用这套自定义布局</string>
+    <string name="aod_layout_visible">显示当前模块</string>
+    <string name="aod_layout_reset">恢复当前布局为系统默认</string>
+    <string name="aod_layout_rotation">屏幕方向</string>
+    <string name="aod_layout_hint">全屏预览显示真实小部件内容。选择模块后拖动移动，拖动右下角手柄缩放；隐藏控件可查看整体效果，精细调整可按百分比细调。保存应用四套草稿，返回放弃。日期、通知及电量显示当前系统内容。真实息屏的屏幕亮度和防烧屏位移由系统控制。</string>
+    <string-array name="aod_layout_targets">
+        <item>息屏 · 竖屏</item><item>息屏 · 横屏</item><item>锁屏 · 竖屏</item><item>锁屏 · 横屏</item>
+    </string-array>
+    <string-array name="aod_layout_modules">
+        <item>时间</item><item>日期与天气</item><item>通知</item><item>小部件</item><item>电量与提示</item>
+    </string-array>
+    <string-array name="aod_layout_rotations">
+        <item>跟随系统设置</item><item>固定竖屏</item><item>固定横屏</item><item>自动旋转</item>
+    </string-array>
+</resources>

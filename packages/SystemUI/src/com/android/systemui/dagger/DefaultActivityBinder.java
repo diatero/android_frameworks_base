@@ -47,6 +47,12 @@ import dagger.multibindings.IntoMap;
  */
 @Module
 public abstract class DefaultActivityBinder {
+    @Binds
+    @IntoMap
+    @ClassKey(com.android.systemui.aod.widgets.AodLayoutEditorActivity.class)
+    public abstract Activity bindAodLayoutEditorActivity(
+            com.android.systemui.aod.widgets.AodLayoutEditorActivity activity);
+
     /** Inject into TunerActivity. */
     @Binds
     @IntoMap

@@ -21,6 +21,8 @@ import com.android.systemui.dagger.SysUISingleton
 import com.android.systemui.keyguard.shared.model.KeyguardBlueprint
 import com.android.systemui.keyguard.shared.model.KeyguardSection
 import com.android.systemui.keyguard.ui.view.layout.sections.AccessibilityActionsSection
+import com.android.systemui.keyguard.ui.view.layout.sections.AodWidgetSection
+import com.android.systemui.keyguard.ui.view.layout.sections.AodDisplayLayoutSection
 import com.android.systemui.keyguard.ui.view.layout.sections.AodBurnInSection
 import com.android.systemui.keyguard.ui.view.layout.sections.AodNotificationIconsSection
 import com.android.systemui.keyguard.ui.view.layout.sections.AodPromotedNotificationSection
@@ -62,6 +64,8 @@ constructor(
     aodPromotedNotificationSection: AodPromotedNotificationSection,
     aodNotificationIconsSection: AodNotificationIconsSection,
     aodBurnInSection: AodBurnInSection,
+    aodWidgetSection: AodWidgetSection,
+    aodDisplayLayoutSection: AodDisplayLayoutSection,
     clockSection: ClockSection,
     smartspaceSection: SmartspaceSection,
     keyguardSliceViewSection: KeyguardSliceViewSection,
@@ -84,6 +88,8 @@ constructor(
             aodBurnInSection,
             clockSection,
             keyguardSliceViewSection,
+            aodWidgetSection,
+            aodDisplayLayoutSection,
             defaultDeviceEntrySection,
             udfpsAccessibilityOverlaySection, // Add LAST: Intentionally has z-order above others
         )

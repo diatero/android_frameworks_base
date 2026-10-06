@@ -470,6 +470,17 @@
             </intent-filter>
         </receiver>
 
+        <activity android:name=".aod.widgets.AodLayoutEditorActivity"
+                  android:exported="false"
+                  android:theme="@style/Theme_AodLayoutEditor"
+                  android:label="@string/aod_layout_title" />
+
+        <activity android:name=".aod.widgets.AodWidgetSettingsActivity"
+                  android:exported="true"
+                  android:permission="android.permission.WRITE_SECURE_SETTINGS"
+                  android:theme="@style/Theme.AodWidgetSettings"
+                  android:label="@string/aod_widgets_title" />
+
         <activity android:name=".screenshot.scroll.LongScreenshotActivity"
                   android:theme="@style/LongScreenshotActivity"
                   android:process=":screenshot"

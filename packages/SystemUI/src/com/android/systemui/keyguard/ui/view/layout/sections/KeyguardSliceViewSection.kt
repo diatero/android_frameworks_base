@@ -116,6 +116,8 @@ constructor(
                 ConstraintSet.END,
             )
             constrainHeight(R.id.keyguard_slice_view, ConstraintSet.WRAP_CONTENT)
+            // Explicitly restore the native width after leaving a custom display layout.
+            constrainWidth(R.id.keyguard_slice_view, ConstraintSet.MATCH_CONSTRAINT)
 
             connect(
                 R.id.keyguard_slice_view,

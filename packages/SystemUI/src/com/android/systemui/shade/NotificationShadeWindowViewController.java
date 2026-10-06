@@ -134,6 +134,8 @@ public class NotificationShadeWindowViewController implements Dumpable {
     private View mBrightnessMirror;
     private boolean mTouchActive;
     private boolean mTouchCancelled;
+    private boolean mTrackingLockscreenWidgetTouch;
+    private boolean mWidgetTouchEnded;
     private MotionEvent mDownEvent;
     // TODO rename to mLaunchAnimationRunning
     private boolean mExpandAnimationRunning;
@@ -422,6 +424,11 @@ public class NotificationShadeWindowViewController implements Dumpable {
                 boolean isDown = ev.getActionMasked() == MotionEvent.ACTION_DOWN;
                 boolean isUp = ev.getActionMasked() == MotionEvent.ACTION_UP;
                 boolean isCancel = ev.getActionMasked() == MotionEvent.ACTION_CANCEL;
+                if (isDown) {
+                    mTrackingLockscreenWidgetTouch = !mHandlingExternalTouch
+                            && isInsideLockscreenWidget(ev.getRawX(), ev.getRawY());
+                }
+                mWidgetTouchEnded = isUp || isCancel;
 
                 boolean expandingBelowNotch = mExpandingBelowNotch;
                 if (isUp || isCancel) {
@@ -468,6 +475,11 @@ public class NotificationShadeWindowViewController implements Dumpable {
                 }
 
                 mFalsingCollector.onTouchEvent(ev);
+                if (mTrackingLockscreenWidgetTouch && isLockscreenWidgetVisible()) {
+                    // Deliver the complete stream to RemoteViews, including scrolling collections.
+                    // The shade, hub and double-tap-to-sleep recognizers must not consume it.
+                    return null;
+                }
                 mQQSGestureHandler.onTouchEvent(ev);
                 // Pass touch events to the pulsing gesture listener only if it's dozing,
                 // otherwise lockscreen DT2S and AOD DT2W will conflict.
@@ -559,6 +571,7 @@ public class NotificationShadeWindowViewController implements Dumpable {
             @Override
             public void dispatchTouchEventComplete() {
                 mFalsingCollector.onMotionEventComplete();
+                if (mWidgetTouchEnded) mTrackingLockscreenWidgetTouch = false;
             }
 
             @Override
@@ -572,6 +585,7 @@ public class NotificationShadeWindowViewController implements Dumpable {
 
             private boolean shouldInterceptTouchEventInternal(MotionEvent ev) {
                 mLastInterceptWasDragDownHelper = false;
+                if (mTrackingLockscreenWidgetTouch && isLockscreenWidgetVisible()) return false;
                 // When the device starts dozing, there's a delay before the device's display state
                 // changes from ON => DOZE to allow for the light reveal animation to run at
                 // a higher refresh rate and to delay visual changes (ie: display blink) when
@@ -728,6 +742,34 @@ public class NotificationShadeWindowViewController implements Dumpable {
                     }
                 }
         );
+    }
+
+    private boolean isLockscreenWidgetVisible() {
+        return mStatusBarStateController.getState() == KEYGUARD
+                && !mStatusBarStateController.isDozing()
+                && !mPrimaryBouncerInteractor.isBouncerShowing()
+                && !mAlternateBouncerInteractor.isVisibleState()
+                && hasWidgetAt(mView, 0, 0, false);
+    }
+
+    private boolean isInsideLockscreenWidget(float screenX, float screenY) {
+        return isLockscreenWidgetVisible() && hasWidgetAt(mView, screenX, screenY, true);
+    }
+
+    private boolean hasWidgetAt(View view, float x, float y, boolean hitTest) {
+        if (view.getId() == R.id.aod_widget_live && view.isShown()) {
+            if (!hitTest) return true;
+            int[] location = new int[2];
+            view.getLocationOnScreen(location);
+            if (x >= location[0] && x < location[0] + view.getWidth()
+                    && y >= location[1] && y < location[1] + view.getHeight()) return true;
+        }
+        if (view instanceof android.view.ViewGroup group) {
+            for (int i = 0; i < group.getChildCount(); i++) {
+                if (hasWidgetAt(group.getChildAt(i), x, y, hitTest)) return true;
+            }
+        }
+        return false;
     }
 
     private boolean didNotificationPanelInterceptEvent(MotionEvent ev) {

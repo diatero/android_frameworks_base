@@ -30,6 +30,7 @@ import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.database.ContentObserver;
+import android.os.UserHandle;
 import android.graphics.Rect;
 import android.graphics.Region;
 import android.os.Handler;
@@ -110,6 +111,7 @@ public class NotificationShadeWindowControllerImpl implements NotificationShadeW
     private static final int MAX_STATE_CHANGES_BUFFER_SIZE = 100;
 
     private final Context mContext;
+    private final UserTracker mUserTracker;
     private final WindowRootViewComponent.Factory mWindowRootViewComponentFactory;
     private final WindowManager mWindowManager;
     private final IActivityManager mActivityManager;
@@ -180,6 +182,7 @@ public class NotificationShadeWindowControllerImpl implements NotificationShadeW
             @ShadeDisplayAware LayoutParams shadeWindowLayoutParams,
             TopUiController topUiController) {
         mContext = context;
+        mUserTracker = userTracker;
         mWindowRootViewComponentFactory = windowRootViewComponentFactory;
         mWindowManager = windowManager;
         mActivityManager = activityManager;
@@ -486,6 +489,16 @@ public class NotificationShadeWindowControllerImpl implements NotificationShadeW
     }
 
     private void adjustScreenOrientation(NotificationShadeWindowState state) {
+        if (!state.bouncerShowing && mUserTracker.getUserId() == UserHandle.USER_SYSTEM
+                && (state.isKeyguardShowingAndNotOccluded() || state.dozing)) {
+            int rotation = com.android.systemui.aod.widgets.AodDisplayLayoutStore.rotation(mContext);
+            if (rotation != 0) {
+                mLpChanged.screenOrientation = rotation == 1 ? ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                        : rotation == 2 ? ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                        : ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR;
+                return;
+            }
+        }
         boolean dreamShowingAndRotationAllowed = dreamsV2() && mContext.getResources().getBoolean(
                 com.android.internal.R.bool.config_alwaysAllowDreamRotation)
                 && state.isOnOrGoingToDream;
@@ -1155,6 +1168,9 @@ public class NotificationShadeWindowControllerImpl implements NotificationShadeW
         }
 
         public void observe(Context context) {
+            context.getContentResolver().registerContentObserver(
+                    Settings.Secure.getUriFor(com.android.systemui.aod.widgets.AodDisplayLayoutStore.ROTATION),
+                    false, this, UserHandle.USER_SYSTEM);
             context.getContentResolver().registerContentObserver(
                     Settings.System.getUriFor(Settings.System.ACCELEROMETER_ROTATION),
                     false, this);

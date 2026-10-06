@@ -1157,6 +1157,23 @@ public class KeyguardIndicationController {
         updateLockScreenIndications(animate, getCurrentUser());
     }
 
+    /** Current indication content for the unlocked layout editor, without changing Keyguard. */
+    public CharSequence getIndicationForPreview(boolean aod) {
+        if (!mBatteryPresent || mBatteryLevel < 0) return null;
+        if (aod) {
+            if (!TextUtils.isEmpty(mBiometricMessage)) return mBiometricMessage;
+            if (!TextUtils.isEmpty(mTransientIndication)) return mTransientIndication;
+            if (!TextUtils.isEmpty(mAlignmentIndication)) return mAlignmentIndication;
+            return mPowerPluggedIn || mEnableBatteryDefender ? computePowerIndication()
+                    : NumberFormat.getPercentInstance().format(mBatteryLevel / 100f);
+        }
+        if (mLockScreenIndicationView != null
+                && !TextUtils.isEmpty(mLockScreenIndicationView.getText())) {
+            return mLockScreenIndicationView.getText();
+        }
+        return mPowerPluggedIn || mEnableBatteryDefender ? computePowerIndication() : null;
+    }
+
     /**
      * Assumption: device is charging
      */

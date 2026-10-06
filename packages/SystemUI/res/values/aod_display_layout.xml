@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="aod_layout_title">Screen layouts</string>
+    <string name="aod_layout_edit">Customise screen layouts</string>
+    <string name="aod_layout_summary">Arrange time, date, notifications, widget and battery information for each screen and orientation</string>
+    <string name="aod_layout_target">Layout to edit</string>
+    <string name="aod_layout_module">Selected module</string>
+    <string name="aod_layout_enabled">Use this custom layout</string>
+    <string name="aod_layout_visible">Show this module</string>
+    <string name="aod_layout_reset">Restore this layout to system default</string>
+    <string name="aod_layout_rotation">Screen orientation</string>
+    <string name="aod_layout_hint">Full-screen preview uses real widget content. Select a module to drag it or resize it with the bottom-right handle. Hide controls to inspect the result; Fine adjust provides precise percentages. Save applies all four drafts; Back discards them. Native date, notifications and battery information show current system content. Actual AOD screen brightness and burn-in movement are controlled by the system.</string>
+    <string-array name="aod_layout_targets">
+        <item>Always-on display · Portrait</item><item>Always-on display · Landscape</item>
+        <item>Lock screen · Portrait</item><item>Lock screen · Landscape</item>
+    </string-array>
+    <string-array name="aod_layout_modules">
+        <item>Time</item><item>Date and weather</item><item>Notifications</item><item>Widget</item><item>Battery and information</item>
+    </string-array>
+    <string-array name="aod_layout_rotations">
+        <item>System setting</item><item>Portrait</item><item>Landscape</item><item>Automatic rotation</item>
+    </string-array>
+</resources>

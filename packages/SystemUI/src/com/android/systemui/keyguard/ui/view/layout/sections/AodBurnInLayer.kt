@@ -35,12 +35,21 @@ class AodBurnInLayer(
     // As described for _scaleX and _scaleY, we have similar issue with translation
     private var _translationX = 0F
     private var _translationY = 0F
+    private var customLayoutActive = false
+
+    // Keep helper references and Layer's cached view array intact while custom geometry owns
+    // the transforms. Removing/re-adding references between layout passes leaves that cache stale.
+    fun setCustomLayoutActive(active: Boolean) {
+        customLayoutActive = active
+    }
 
     private val _predrawListener = OnPreDrawListener {
-        super.setScaleX(_scaleX)
-        super.setScaleY(_scaleY)
-        super.setTranslationX(_translationX)
-        super.setTranslationY(_translationY)
+        if (!customLayoutActive) {
+            super.setScaleX(_scaleX)
+            super.setScaleY(_scaleY)
+            super.setTranslationX(_translationX)
+            super.setTranslationY(_translationY)
+        }
         true
     }
 
@@ -59,7 +68,7 @@ class AodBurnInLayer(
 
     override fun setScaleX(scaleX: Float) {
         _scaleX = scaleX
-        super.setScaleX(scaleX)
+        if (!customLayoutActive) super.setScaleX(scaleX)
     }
 
     override fun getScaleX(): Float {
@@ -68,7 +77,7 @@ class AodBurnInLayer(
 
     override fun setScaleY(scaleY: Float) {
         _scaleY = scaleY
-        super.setScaleY(scaleY)
+        if (!customLayoutActive) super.setScaleY(scaleY)
     }
 
     override fun getScaleY(): Float {
@@ -77,7 +86,7 @@ class AodBurnInLayer(
 
     override fun setTranslationX(dx: Float) {
         _translationX = dx
-        super.setTranslationX(dx)
+        if (!customLayoutActive) super.setTranslationX(dx)
     }
 
     override fun getTranslationX(): Float {
@@ -86,7 +95,7 @@ class AodBurnInLayer(
 
     override fun setTranslationY(dy: Float) {
         _translationY = dy
-        super.setTranslationY(dy)
+        if (!customLayoutActive) super.setTranslationY(dy)
     }
 
     override fun getTranslationY(): Float {

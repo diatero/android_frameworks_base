@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <item name="aod_widget_snapshot" type="id" />
+    <string name="aod_widgets_title">Lock screen and always-on display widget</string>
+    <string name="aod_widgets_description">Use widget controls on the lock screen. The always-on display shows a preview; wake the screen to interact. Turn on the always-on display separately.</string>
+    <string name="aod_widgets_enable">Show on lock screen and always-on display</string>
+    <string name="aod_widgets_show_locked">Show content while locked</string>
+    <string name="aod_widgets_privacy_warning">Anyone looking at your locked phone can read this widget and use its buttons, including private messages, calendar entries and other personal information. Opening an app requires unlocking. Allow this?</string>
+    <string name="aod_widgets_choose">Choose or replace widget</string>
+    <string name="aod_widgets_remove">Remove widget</string>
+    <string name="aod_widgets_owner_only">Always-on display widgets are currently available only to the device owner.</string>
+    <string name="aod_widgets_unlock">Unlock your phone to manage widgets.</string>
+    <string name="aod_widgets_none">No compatible widgets are installed.</string>
+    <string name="aod_widgets_error">Unable to add or display this widget. Try another widget.</string>
+    <string name="aod_widgets_edit_layout">Adjust size and position</string>
+    <string name="aod_widgets_drag_hint">Drag the widget or adjust the sliders, then save. Go back to discard changes. The lock screen and always-on display share this layout.</string>
+    <string name="aod_widgets_layout_slot">Widget</string>
+    <string name="aod_widgets_width">Width</string>
+    <string name="aod_widgets_height">Height</string>
+    <string name="aod_widgets_position_x">Horizontal position</string>
+    <string name="aod_widgets_position_y">Vertical position</string>
+    <string name="aod_widgets_size_value">%1$s: %2$d dp</string>
+    <string name="aod_widgets_position_value">%1$s: %2$d%%</string>
+    <string name="aod_widgets_save_layout">Save layout</string>
+    <string name="aod_widgets_reset_layout">Reset layout</string>
+    <item name="aod_widget_container" type="id" />
+    <item name="aod_widget_live" type="id" />
+    <string name="aod_widgets_widget">Widget</string>
+    <string name="aod_widgets_preview">Preview</string>
+    <string name="aod_widgets_privacy">Privacy</string>
+    <string name="aod_widgets_not_selected">No widget selected</string>
+    <string name="aod_widgets_show_locked_summary">Allow content and controls to be available while the phone is locked</string>
+    <string name="aod_widgets_preview_description">Preview of %1$s. Controls are unavailable in this preview.</string>
+    <string name="aod_widgets_layout_summary">%1$d × %2$d dp · Position %3$d%%, %4$d%%</string>
+    <string name="aod_widgets_size">Size</string>
+    <string name="aod_widgets_position">Position</string>
+    <string name="aod_widgets_dp_value">%1$d dp</string>
+    <string name="aod_widgets_percent_value">%1$d%%</string>
+    <string name="aod_widgets_provider_summary">%1$s · %2$s</string>
+    <string name="aod_widgets_appearance">Always-on display appearance</string>
+    <string name="aod_widgets_appearance_summary">Brightness %1$d%% · Saturation %2$d%% · %3$s</string>
+    <string name="aod_widgets_brightness">Widget brightness</string>
+    <string name="aod_widgets_saturation">Colour saturation</string>
+    <string name="aod_widgets_quality">Clarity</string>
+    <string name="aod_widgets_quality_standard">Standard</string>
+    <string name="aod_widgets_quality_high">High definition</string>
+    <string name="aod_widgets_preset">Appearance preset</string>
+    <string name="aod_widgets_preset_custom">Custom</string>
+    <string name="aod_widgets_preset_power">Dim monochrome</string>
+    <string name="aod_widgets_preset_balanced">Balanced</string>
+    <string name="aod_widgets_preset_original">Original colours</string>
+    <string name="aod_widgets_save_appearance">Save appearance</string>
+    <string name="aod_widgets_reset_appearance">Reset appearance</string>
+    <string name="aod_widgets_appearance_preview">Colour and brightness preview</string>
+    <string name="aod_widgets_appearance_hint" formatted="false">These settings apply only to the always-on display widget. Saturation 0% is monochrome; 100% keeps the original colours. High definition makes text clearer and uses more rendering memory. Save to apply, or go back to discard changes. Actual screen brightness is controlled by the system always-on display.</string>
+    <string name="aod_widgets_add">Add widget</string>
+    <string name="aod_widgets_limit">You can add up to 8 widgets.</string>
+    <string name="aod_widgets_multiple_summary">Each widget has its own position and size in the full-screen layout editor.</string>
+    <string name="aod_layout_precision">Fine adjust</string>
+    <string name="aod_layout_preview_only">Hide controls</string>
+    <string name="aod_layout_show_controls">Edit layout</string>
+    <string name="aod_layout_move_controls">Drag to move controls</string>
+</resources>
