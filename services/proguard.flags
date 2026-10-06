@@ -138,3 +138,9 @@
 -keep,allowoptimization,allowaccessmodification class lineageos.** { *; }
 -keep,allowoptimization,allowaccessmodification class org.lineageos.** { *; }
 -keep,allowoptimization,allowaccessmodification class vendor.lineage.** { *; }
+
+# DIATER-HOOK(virtual-location/location.override): contracts implemented only outside
+# services.jar (vendor/diater diater-services). R8 must not assume they have no
+# implementations, or it rewrites casts to throw and calls/results to dead code.
+-keep interface com.android.server.location.VirtualLocationHooks { *; }
+-keep interface com.android.server.location.VirtualLocationHooks$Policy { *; }

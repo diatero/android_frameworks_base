@@ -150,4 +150,7 @@ interface ILocationManager
     String[] getBackgroundThrottlingWhitelist();
     PackageTagsList getIgnoreSettingsAllowlist();
     PackageTagsList getAdasAllowlist();
+
+    @EnforcePermission("LOCATION_HARDWARE")
+    boolean shouldHideLocationEnvironment(int uid);
 }

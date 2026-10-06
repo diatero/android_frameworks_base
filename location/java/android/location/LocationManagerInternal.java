@@ -28,6 +28,11 @@ import android.os.PackageTagsList;
  */
 public abstract class LocationManagerInternal {
 
+    /** Returns whether virtual location scope hides this UID's radio location information. */
+    public boolean shouldHideLocationEnvironment(int uid) {
+        return false;
+    }
+
     /**
      * Listener for changes in provider enabled state.
      */

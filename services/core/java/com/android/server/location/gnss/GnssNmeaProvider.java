@@ -45,9 +45,13 @@ class GnssNmeaProvider extends GnssListenerMultiplexer<Void, IGnssNmeaListener, 
     // preallocated to avoid memory allocation in onReportNmea()
     private final byte[] mNmeaBuffer = new byte[120];
 
+    @Nullable
+    private final com.android.server.location.VirtualLocationAdapter mVirtualLocation;
+
     GnssNmeaProvider(Injector injector, GnssNative gnssNative) {
         super(injector);
 
+        mVirtualLocation = injector.getVirtualLocation();
         mAppOpsHelper = injector.getAppOpsHelper();
         mGnssNative = gnssNative;
 
@@ -102,6 +106,11 @@ class GnssNmeaProvider extends GnssListenerMultiplexer<Void, IGnssNmeaListener, 
                     @Override
                     public ListenerExecutor.ListenerOperation<IGnssNmeaListener> apply(
                             GnssListenerRegistration registration) {
+                        // DIATER-HOOK(virtual-location/gnss.filter): no NMEA for policy targets
+                        if (mVirtualLocation != null && mVirtualLocation.getPolicy(
+                                registration.getIdentity()) != null) {
+                            return null;
+                        }
                         if (mAppOpsHelper.noteOpNoThrow(AppOpsManager.OP_FINE_LOCATION,
                                 registration.getIdentity())) {
                             if (mNmea == null) {

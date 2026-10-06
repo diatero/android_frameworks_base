@@ -94,12 +94,15 @@ public final class GnssMeasurementsProvider extends
     private final AppOpsHelper mAppOpsHelper;
     private final LocationUsageLogger mLogger;
     private final GnssNative mGnssNative;
+    @Nullable
+    private final com.android.server.location.VirtualLocationAdapter mVirtualLocation;
 
     @GuardedBy("mMultiplexerLock")
     private GnssMeasurementsEvent mLastGnssMeasurementsEvent;
 
     public GnssMeasurementsProvider(Injector injector, GnssNative gnssNative) {
         super(injector);
+        mVirtualLocation = injector.getVirtualLocation();
         mAppOpsHelper = injector.getAppOpsHelper();
         mLogger = injector.getLocationUsageLogger();
         mGnssNative = gnssNative;
@@ -262,6 +265,11 @@ public final class GnssMeasurementsProvider extends
     @Override
     public void onReportMeasurements(GnssMeasurementsEvent event) {
         deliverToListeners(registration -> {
+            // DIATER-HOOK(virtual-location/gnss.filter): no raw measurements for policy targets
+            if (mVirtualLocation != null
+                    && mVirtualLocation.getPolicy(registration.getIdentity()) != null) {
+                return null;
+            }
             if (mAppOpsHelper.noteOpNoThrow(AppOpsManager.OP_FINE_LOCATION,
                     registration.getIdentity())) {
                 EVENT_LOG.logGnssMeasurementsDelivered(event.getMeasurements().size(),

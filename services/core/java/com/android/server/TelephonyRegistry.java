@@ -4606,6 +4606,13 @@ public class TelephonyRegistry extends ITelephonyRegistry.Stub {
      * If you don't need app compat logic, use {@link #checkFineLocationAccess(Record)}.
      */
     private boolean checkFineLocationAccess(Record r, int minSdk) {
+        // DIATER-HOOK(virtual-location/telephony.registry.filter): no radio location pushes
+        // for virtual location targets; in-process query, implementation failures read as false
+        android.location.LocationManagerInternal location = LocalServices.getService(
+                android.location.LocationManagerInternal.class);
+        if (location != null && location.shouldHideLocationEnvironment(r.callerUid)) {
+            return false;
+        }
         if (r.renounceFineLocationAccess) {
             return false;
         }
@@ -4635,6 +4642,13 @@ public class TelephonyRegistry extends ITelephonyRegistry.Stub {
      * If you don't need app compat logic, use {@link #checkCoarseLocationAccess(Record)}.
      */
     private boolean checkCoarseLocationAccess(Record r, int minSdk) {
+        // DIATER-HOOK(virtual-location/telephony.registry.filter): no radio location pushes
+        // for virtual location targets; in-process query, implementation failures read as false
+        android.location.LocationManagerInternal location = LocalServices.getService(
+                android.location.LocationManagerInternal.class);
+        if (location != null && location.shouldHideLocationEnvironment(r.callerUid)) {
+            return false;
+        }
         if (r.renounceCoarseLocationAccess) {
             return false;
         }

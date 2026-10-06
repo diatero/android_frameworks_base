@@ -193,6 +193,13 @@ public class LocationManagerService extends ILocationManager.Stub implements
             LocationManager.invalidateLocalLocationEnabledCaches();
             // disable caching for our own process
             LocationManager.disableLocalLocationEnabledCaches();
+
+            // DIATER-HOOK(virtual-location/environment.query): same client caching for radio
+            // environment answers, invalidated whenever virtual location policies change
+            LocationManager.invalidateLocalHideLocationEnvironmentCaches();
+            LocationManager.disableLocalHideLocationEnvironmentCaches();
+            mSystemInjector.getVirtualLocation().addListener(
+                    LocationManager::invalidateLocalHideLocationEnvironmentCaches);
         }
 
         @Override
@@ -201,6 +208,10 @@ public class LocationManagerService extends ILocationManager.Stub implements
                 // the location service must be functioning after this boot phase
                 mSystemInjector.onSystemReady();
                 mService.onSystemReady();
+            } else if (phase == PHASE_DEVICE_SPECIFIC_SERVICES_READY) {
+                // DIATER-HOOK(virtual-location/location.override): bind the implementation that
+                // device-specific services published during their start
+                mSystemInjector.getVirtualLocation().attach();
             } else if (phase == PHASE_THIRD_PARTY_APPS_CAN_START) {
                 // some providers rely on third party code, so we wait to initialize
                 // providers until third party code is allowed to run
@@ -1589,12 +1600,26 @@ public class LocationManagerService extends ILocationManager.Stub implements
     }
 
     @Override
+    @android.annotation.EnforcePermission(android.Manifest.permission.LOCATION_HARDWARE)
+    public boolean shouldHideLocationEnvironment(int uid) {
+        super.shouldHideLocationEnvironment_enforcePermission();
+        Preconditions.checkArgument(uid >= 0);
+        // DIATER-HOOK(virtual-location/environment.query): Wi-Fi, Connectivity and Telephony ask here
+        VirtualLocationAdapter virtualLocation = mInjector.getVirtualLocation();
+        return virtualLocation != null && virtualLocation.shouldHideEnvironment(uid);
+    }
+
+    @Override
     protected void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         if (!DumpUtils.checkDumpPermission(mContext, TAG, pw)) {
             return;
         }
 
         IndentingPrintWriter ipw = new IndentingPrintWriter(pw, "  ");
+
+        if (mInjector.getVirtualLocation() != null) {
+            mInjector.getVirtualLocation().dump(ipw);
+        }
 
         if (args.length > 0) {
             LocationProviderManager manager = getLocationProviderManager(args[0]);
@@ -1803,6 +1828,13 @@ public class LocationManagerService extends ILocationManager.Stub implements
 
     private class LocalService extends LocationManagerInternal {
 
+        @Override
+        public boolean shouldHideLocationEnvironment(int uid) {
+            // DIATER-HOOK(virtual-location/environment.query): TelephonyRegistry asks here
+            VirtualLocationAdapter virtualLocation = mInjector.getVirtualLocation();
+            return virtualLocation != null && virtualLocation.shouldHideEnvironment(uid);
+        }
+
         LocalService() {}
 
         @Override
@@ -1894,6 +1926,7 @@ public class LocationManagerService extends ILocationManager.Stub implements
     private static final class SystemInjector implements Injector {
 
         private final Context mContext;
+        private final VirtualLocationAdapter mVirtualLocation = new VirtualLocationAdapter();
 
         private final SystemUserInfoHelper mUserInfoHelper;
         private final LocationSettings mLocationSettings;
@@ -1953,6 +1986,11 @@ public class LocationManagerService extends ILocationManager.Stub implements
             }
 
             mSystemReady = true;
+        }
+
+        @Override
+        public VirtualLocationAdapter getVirtualLocation() {
+            return mVirtualLocation;
         }
 
         @Override

@@ -16,12 +16,21 @@
 
 package com.android.server.location.injector;
 
+import android.annotation.Nullable;
+
+import com.android.server.location.VirtualLocationAdapter;
 import com.android.server.location.settings.LocationSettings;
 
 /**
  * Injects various location dependencies so that they may be controlled by tests.
  */
 public interface Injector {
+
+    /** Optional per-app virtual location; absent in existing test injectors. */
+    @Nullable
+    default VirtualLocationAdapter getVirtualLocation() {
+        return null;
+    }
 
     /** Returns a UserInfoHelper. */
     UserInfoHelper getUserInfoHelper();

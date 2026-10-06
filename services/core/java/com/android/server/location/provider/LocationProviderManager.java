@@ -105,6 +105,8 @@ import com.android.server.IoThread;
 import com.android.server.LocalServices;
 import com.android.server.location.LocationPermissions;
 import com.android.server.location.LocationPermissions.PermissionLevel;
+import com.android.server.location.VirtualLocationAdapter;
+import com.android.server.location.VirtualLocationHooks.Policy;
 import com.android.server.location.fudger.LocationFudger;
 import com.android.server.location.fudger.LocationFudgerCache;
 import com.android.server.location.injector.AlarmHelper;
@@ -399,6 +401,45 @@ public class LocationProviderManager extends
         private boolean mIsInEmergency;
 
         @Nullable private Location mLastLocation = null;
+        private final Runnable mVirtualLocationTick = this::deliverVirtualLocation;
+        @Nullable private Policy mScheduledVirtualPolicy;
+
+        // DIATER-HOOK(virtual-location/location.override): every registration path asks here
+        @Nullable final Policy getVirtualPolicy() {
+            return getRequest().isBypass() || mVirtualLocation == null ? null
+                    : mVirtualLocation.getPolicy(getIdentity());
+        }
+
+        final void scheduleVirtualLocation() {
+            FgThread.getHandler().removeCallbacks(mVirtualLocationTick);
+            mScheduledVirtualPolicy = getVirtualPolicy();
+            if (isActive() && mScheduledVirtualPolicy != null && !PASSIVE_PROVIDER.equals(mName)
+                    && getRequest().getIntervalMillis() != LocationRequest.PASSIVE_INTERVAL) {
+                FgThread.getHandler().post(mVirtualLocationTick);
+            }
+        }
+
+        private void deliverVirtualLocation() {
+            synchronized (mMultiplexerLock) {
+                Policy policy = getVirtualPolicy();
+                if (!isActive() || policy == null) {
+                    return;
+                }
+                Location location = mVirtualLocation.createLocation(policy, mName);
+                if (location != null) {
+                    executeOperation(acceptLocationChange(LocationResult.wrap(location)));
+                }
+                if (location != null && mPassiveManager != null) {
+                    // No virtual fix enters the shared last-location or real passive cache.
+                    FgThread.getHandler().post(mPassiveManager::deliverVirtualLocationEvent);
+                }
+                if (isActive() && getVirtualPolicy() != null
+                        && getRequest().getIntervalMillis() != LocationRequest.PASSIVE_INTERVAL) {
+                    FgThread.getHandler().postDelayed(mVirtualLocationTick,
+                            max(1000, getRequest().getIntervalMillis()));
+                }
+            }
+        }
 
         protected Registration(LocationRequest request, CallerIdentity identity, Executor executor,
                 LocationTransport transport, @PermissionLevel int permissionLevel) {
@@ -469,6 +510,7 @@ public class LocationProviderManager extends
         @GuardedBy("mMultiplexerLock")
         @Override
         protected void onUnregister() {
+            FgThread.getHandler().removeCallbacks(mVirtualLocationTick);
             EVENT_LOG.logProviderClientUnregistered(mName, getIdentity());
 
             if (D) {
@@ -487,11 +529,13 @@ public class LocationProviderManager extends
                 mAppOpsHelper.startOpNoThrow(OP_MONITOR_LOCATION, getIdentity());
             }
             onHighPowerUsageChanged();
+            scheduleVirtualLocation();
         }
 
         @GuardedBy("mMultiplexerLock")
         @Override
         protected void onInactive() {
+            FgThread.getHandler().removeCallbacks(mVirtualLocationTick);
             onHighPowerUsageChanged();
             if (!getRequest().isHiddenFromAppOps()) {
                 mAppOpsHelper.finishOp(OP_MONITOR_LOCATION, getIdentity());
@@ -892,6 +936,10 @@ public class LocationProviderManager extends
         protected void onActive() {
             super.onActive();
 
+            if (getVirtualPolicy() != null) {
+                return;
+            }
+
             // a new registration may not get a location immediately, the provider request may be
             // delayed. therefore we deliver a historical location if available. since delivering an
             // older location could be considered a breaking change for some applications, we only
@@ -949,6 +997,15 @@ public class LocationProviderManager extends
                 return null;
             }
 
+            Policy policy = getVirtualPolicy();
+            if (policy != null) {
+                Location location = mVirtualLocation.createLocation(policy,
+                        fineLocationResult.getLastLocation().getProvider());
+                if (location == null) {
+                    return null;
+                }
+                fineLocationResult = LocationResult.wrap(location);
+            }
             LocationResult permittedLocationResult = Objects.requireNonNull(
                     getPermittedLocationResult(fineLocationResult, getPermissionLevel()));
 
@@ -1027,18 +1084,28 @@ public class LocationProviderManager extends
             // deliver location
             return new ListenerOperation<LocationTransport>() {
 
+                private boolean mAcquiredWakeLock;
+                private boolean mDelivered;
+
                 @Override
                 public void onPreExecute() {
+                    if (getVirtualPolicy() != policy) {
+                        return;
+                    }
                     // update last delivered location
                     setLastDeliveredLocation(locationResult.getLastLocation());
 
                     if (useWakeLock) {
                         mWakeLock.acquire(WAKELOCK_TIMEOUT_MS);
+                        mAcquiredWakeLock = true;
                     }
                 }
 
                 @Override
                 public void operate(LocationTransport listener) throws Exception {
+                    if (getVirtualPolicy() != policy) {
+                        return;
+                    }
                     // if delivering to the same process, make a copy of the location first (since
                     // location is mutable)
                     LocationResult deliverLocationResult;
@@ -1050,17 +1117,18 @@ public class LocationProviderManager extends
 
                     listener.deliverOnLocationChanged(deliverLocationResult,
                             useWakeLock ? mWakeLockReleaser : null);
+                    mDelivered = true;
                     EVENT_LOG.logProviderDeliveredLocations(mName, locationResult.size(),
                             getIdentity());
                 }
 
                 @Override
                 public void onPostExecute(boolean success) {
-                    if (!success && useWakeLock) {
+                    if ((!success || !mDelivered) && mAcquiredWakeLock) {
                         mWakeLock.release();
                     }
 
-                    if (success) {
+                    if (success && mDelivered) {
                         // check num updates - if successful then this function will always be run
                         // from the same thread, and no additional synchronization is necessary
                         boolean remove = ++mNumLocationsDelivered >= getRequest().getMaxUpdates();
@@ -1308,6 +1376,9 @@ public class LocationProviderManager extends
         protected void onActive() {
             super.onActive();
 
+            if (getVirtualPolicy() != null) {
+                return;
+            }
             Location lastLocation = getLastLocationUnsafe(
                     getIdentity().getUserId(),
                     getPermissionLevel(),
@@ -1351,6 +1422,15 @@ public class LocationProviderManager extends
         @Override
         @Nullable ListenerOperation<LocationTransport> acceptLocationChange(
                 @Nullable LocationResult fineLocationResult) {
+            Policy policy = getVirtualPolicy();
+            // null means timeout, permission loss or cancellation: never turn it into success.
+            if (fineLocationResult != null && policy != null) {
+                Location location = mVirtualLocation.createLocation(policy, mName);
+                if (location == null) {
+                    return null;
+                }
+                fineLocationResult = LocationResult.wrap(location);
+            }
             // check expiration time - alarm is not guaranteed to go off at the right time,
             // especially for short intervals
             if (SystemClock.elapsedRealtime() >= mExpirationRealtimeMs) {
@@ -1384,8 +1464,13 @@ public class LocationProviderManager extends
 
             // deliver location
             return new ListenerOperation<LocationTransport>() {
+                private boolean mDelivered;
+
                 @Override
                 public void operate(LocationTransport listener) throws Exception {
+                    if (locationResult != null && getVirtualPolicy() != policy) {
+                        return;
+                    }
                     // if delivering to the same process, make a copy of the location first (since
                     // location is mutable)
                     LocationResult deliverLocationResult;
@@ -1397,6 +1482,7 @@ public class LocationProviderManager extends
 
                     // we currently don't hold a wakelock for getCurrentLocation deliveries
                     listener.deliverOnLocationChanged(deliverLocationResult, null);
+                    mDelivered = true;
                     EVENT_LOG.logProviderDeliveredLocations(mName,
                             locationResult != null ? locationResult.size() : 0, getIdentity());
                 }
@@ -1405,7 +1491,7 @@ public class LocationProviderManager extends
                 public void onPostExecute(boolean success) {
                     // on failure we're automatically removed anyways, no need to attempt removal
                     // again
-                    if (success) {
+                    if (success && mDelivered) {
                         remove();
                     }
                 }
@@ -1463,6 +1549,8 @@ public class LocationProviderManager extends
     private final CopyOnWriteArrayList<IProviderRequestListener> mProviderRequestListeners;
 
     protected final LocationManagerInternal mLocationManagerInternal;
+    @Nullable private final VirtualLocationAdapter mVirtualLocation;
+    private final Runnable mVirtualPolicyChangedListener = this::onVirtualPolicyChanged;
     protected final LocationSettings mLocationSettings;
     protected final SettingsHelper mSettingsHelper;
     protected final UserInfoHelper mUserHelper;
@@ -1575,6 +1663,7 @@ public class LocationProviderManager extends
         mLocationManagerInternal = Objects.requireNonNull(
                 LocalServices.getService(LocationManagerInternal.class));
         mLocationSettings = injector.getLocationSettings();
+        mVirtualLocation = injector.getVirtualLocation();
         mSettingsHelper = injector.getSettingsHelper();
         mUserHelper = injector.getUserInfoHelper();
         mAlarmHelper = injector.getAlarmHelper();
@@ -1600,6 +1689,10 @@ public class LocationProviderManager extends
             mState = STATE_STARTED;
             mStateChangedListener = listener;
 
+            if (mVirtualLocation != null) {
+                mVirtualLocation.addListener(mVirtualPolicyChangedListener);
+            }
+
             mUserHelper.addListener(mUserChangedListener);
             mLocationSettings.registerLocationUserSettingsListener(mLocationUserSettingsListener);
             mSettingsHelper.addOnLocationEnabledChangedListener(mLocationEnabledChangedListener);
@@ -1618,6 +1711,10 @@ public class LocationProviderManager extends
         synchronized (mMultiplexerLock) {
             Preconditions.checkState(mState == STATE_STARTED);
             mState = STATE_STOPPING;
+
+            if (mVirtualLocation != null) {
+                mVirtualLocation.removeListener(mVirtualPolicyChangedListener);
+            }
 
             final long identity = Binder.clearCallingIdentity();
             try {
@@ -1838,13 +1935,13 @@ public class LocationProviderManager extends
             return null;
         }
 
-        Location location = getPermittedLocation(
-                getLastLocationUnsafe(
-                        identity.getUserId(),
-                        permissionLevel,
-                        request.isBypass(),
-                        Long.MAX_VALUE),
-                permissionLevel);
+        // DIATER-HOOK(virtual-location/location.override): last location of a policy target
+        Policy policy = request.isBypass() || mVirtualLocation == null ? null
+                : mVirtualLocation.getPolicy(identity);
+        Location location = getPermittedLocation(policy != null
+                ? mVirtualLocation.createLocation(policy, mName)
+                : getLastLocationUnsafe(identity.getUserId(), permissionLevel,
+                        request.isBypass(), Long.MAX_VALUE), permissionLevel);
 
         if (location != null) {
             // lastly - note app ops
@@ -2627,6 +2724,37 @@ public class LocationProviderManager extends
                 registration -> registration.getIdentity().getPackageName().equals(packageName));
     }
 
+    private void onVirtualPolicyChanged() {
+        synchronized (mMultiplexerLock) {
+            if (mState != STATE_STARTED) {
+                return;
+            }
+            findRegistration(registration -> {
+                if (registration.mScheduledVirtualPolicy != registration.getVirtualPolicy()) {
+                    registration.setLastDeliveredLocation(null);
+                    registration.scheduleVirtualLocation();
+                }
+                return false;
+            });
+        }
+    }
+
+    /** A virtual source event may drive passive virtual clients, without updating real caches. */
+    protected void deliverVirtualLocationEvent() {
+        synchronized (mMultiplexerLock) {
+            if (mState != STATE_STARTED) {
+                return;
+            }
+            deliverToListeners(registration -> {
+                Policy policy = registration.getVirtualPolicy();
+                Location location = policy == null ? null
+                        : mVirtualLocation.createLocation(policy, GPS_PROVIDER);
+                return location == null ? null
+                        : registration.acceptLocationChange(LocationResult.wrap(location));
+            });
+        }
+    }
+
     @GuardedBy("mMultiplexerLock")
     @Override
     public void onStateChanged(
@@ -2680,6 +2808,9 @@ public class LocationProviderManager extends
 
         // attempt listener delivery
         deliverToListeners(registration -> {
+            if (!PASSIVE_PROVIDER.equals(mName) && registration.getVirtualPolicy() != null) {
+                return null;
+            }
             return registration.acceptLocationChange(processed);
         });
 

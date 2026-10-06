@@ -18,9 +18,21 @@ package com.android.server.location.injector;
 
 import android.content.Context;
 
+import com.android.server.location.VirtualLocationAdapter;
 import com.android.server.location.settings.FakeLocationSettings;
 
 public class TestInjector implements Injector {
+
+    private VirtualLocationAdapter mVirtualLocation;
+
+    public void setVirtualLocation(VirtualLocationAdapter virtualLocation) {
+        mVirtualLocation = virtualLocation;
+    }
+
+    @Override
+    public VirtualLocationAdapter getVirtualLocation() {
+        return mVirtualLocation;
+    }
 
     private final FakeUserInfoHelper mUserInfoHelper;
     private final FakeLocationSettings mLocationSettings;

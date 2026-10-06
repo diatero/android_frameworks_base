@@ -100,6 +100,8 @@ import androidx.test.runner.AndroidJUnit4;
 import com.android.internal.R;
 import com.android.server.FgThread;
 import com.android.server.LocalServices;
+import com.android.server.location.FakeVirtualLocationHooks;
+import com.android.server.location.VirtualLocationAdapter;
 import com.android.server.location.fudger.LocationFudgerCache;
 import com.android.server.location.injector.FakeUserInfoHelper;
 import com.android.server.location.injector.TestInjector;
@@ -230,6 +232,10 @@ public class LocationProviderManagerTest {
 
     @After
     public void tearDown() throws Exception {
+        if (mInjector != null && mInjector.getVirtualLocation() != null) {
+            mManager.stopManager();
+            mPassive.stopManager();
+        }
         DeviceConfig.resetToDefaults(Settings.RESET_MODE_PACKAGE_DEFAULTS,
                 DeviceConfig.NAMESPACE_LOCATION);
         LocalServices.removeServiceForTest(LocationManagerInternal.class);
@@ -241,6 +247,91 @@ public class LocationProviderManagerTest {
         while (++count < 10 && !latch.await(10, TimeUnit.MILLISECONDS)) {
             FgThread.get().getLooper().getThread().interrupt();
         }
+    }
+
+    private FakeVirtualLocationHooks mVirtualHooks;
+
+    private CallerIdentity configureVirtualTarget() throws Exception {
+        CallerIdentity target = CallerIdentity.forTest(10001, 1, "com.dia.location", null,
+                "virtual-listener");
+        mManager.stopManager();
+        mPassive.stopManager();
+        mVirtualHooks = new FakeVirtualLocationHooks();
+        mVirtualHooks.set(10001, "com.dia.location", 31, 121, 5);
+        VirtualLocationAdapter virtualLocation = new VirtualLocationAdapter();
+        virtualLocation.attach(mVirtualHooks);
+        mInjector.setVirtualLocation(virtualLocation);
+        mPassive = new PassiveLocationProviderManager(mContext, mInjector);
+        mPassive.startManager(null);
+        mPassive.setRealProvider(new PassiveLocationProvider(mContext));
+        createManager(NAME);
+        return target;
+    }
+
+    @Test public void testVirtualCurrentLocationWithoutProviderFix() throws Exception {
+        CallerIdentity target = configureVirtualTarget();
+        ILocationCallback callback = createMockGetCurrentLocationListener();
+        LocationRequest request = new LocationRequest.Builder(0)
+                .setWorkSource(new WorkSource(target.getUid())).build();
+        mManager.getCurrentLocation(request, target, PERMISSION_FINE, callback);
+        ArgumentCaptor<Location> fix = ArgumentCaptor.forClass(Location.class);
+        verify(callback, timeout(TIMEOUT_MS)).onLocation(fix.capture());
+        assertThat(fix.getValue().getLatitude()).isEqualTo(31);
+        assertThat(fix.getValue().getLongitude()).isEqualTo(121);
+        assertThat(fix.getValue().isComplete()).isTrue();
+        assertThat(mManager.getLastLocation(new LastLocationRequest.Builder().build(), IDENTITY,
+                PERMISSION_FINE)).isNull();
+    }
+
+    @Test public void testVirtualLastLocationIsolationAndClear() throws Exception {
+        CallerIdentity target = configureVirtualTarget();
+        Location real = createLocation(NAME, mRandom);
+        mProvider.setProviderLocation(real);
+        LastLocationRequest request = new LastLocationRequest.Builder().build();
+        Location virtual = mManager.getLastLocation(request, target, PERMISSION_FINE);
+        assertThat(virtual.getLatitude()).isEqualTo(31);
+        assertThat(mManager.getLastLocation(request, IDENTITY, PERMISSION_FINE)).isEqualTo(real);
+        Location coarse = mManager.getLastLocation(request, target, PERMISSION_COARSE);
+        assertThat(coarse).isNearby(virtual, 5000);
+        assertThat(coarse.getAccuracy()).isAtLeast(2000);
+        mVirtualHooks.clear(10001);
+        assertThat(mManager.getLastLocation(request, target, PERMISSION_FINE)).isEqualTo(real);
+    }
+
+    @Test public void testVirtualFixFailureIsNotDelivered() throws Exception {
+        CallerIdentity target = configureVirtualTarget();
+        Location real = createLocation(NAME, mRandom);
+        mProvider.setProviderLocation(real);
+        mVirtualHooks.setCreateLocationFailure(true);
+        LastLocationRequest request = new LastLocationRequest.Builder().build();
+        // closed-for-targets: a policy target never falls back to the real fix
+        assertThat(mManager.getLastLocation(request, target, PERMISSION_FINE)).isNull();
+        assertThat(mManager.getLastLocation(request, IDENTITY, PERMISSION_FINE)).isEqualTo(real);
+    }
+
+    @Test public void testVirtualHonorsProviderDisabled() throws Exception {
+        CallerIdentity target = configureVirtualTarget();
+        mProvider.setProviderAllowed(false);
+        assertThat(mManager.getLastLocation(new LastLocationRequest.Builder().build(), target,
+                PERMISSION_FINE)).isNull();
+        ILocationCallback callback = createMockGetCurrentLocationListener();
+        mManager.getCurrentLocation(new LocationRequest.Builder(0)
+                .setWorkSource(new WorkSource(target.getUid())).build(), target,
+                PERMISSION_FINE, callback);
+        verify(callback, times(1)).onLocation(isNull());
+    }
+
+    @Test public void testVirtualCannotSupplyFixWithoutLocationPermission() throws Exception {
+        CallerIdentity target = configureVirtualTarget();
+        mInjector.getLocationPermissionsHelper().revokePermission(target.getPackageName(),
+                ACCESS_FINE_LOCATION);
+        mInjector.getLocationPermissionsHelper().revokePermission(target.getPackageName(),
+                ACCESS_COARSE_LOCATION);
+        ILocationCallback callback = createMockGetCurrentLocationListener();
+        mManager.getCurrentLocation(new LocationRequest.Builder(0)
+                .setWorkSource(new WorkSource(target.getUid())).build(), target,
+                PERMISSION_FINE, callback);
+        verify(callback, timeout(TIMEOUT_MS)).onLocation(isNull());
     }
 
     @Test

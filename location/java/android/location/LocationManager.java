@@ -452,6 +452,8 @@ public class LocationManager {
 
     private static final String CACHE_KEY_LOCATION_ENABLED_PROPERTY =
             PropertyInvalidatedCache.createSystemCacheKey("location_enabled");
+    private static final String CACHE_KEY_HIDE_LOCATION_ENVIRONMENT_PROPERTY =
+            PropertyInvalidatedCache.createSystemCacheKey("hide_location_environment");
 
     static ILocationManager getService() throws RemoteException {
         try {
@@ -464,6 +466,8 @@ public class LocationManager {
 
     private static volatile LocationEnabledCache sLocationEnabledCache =
             new LocationEnabledCache(4);
+    private static volatile HideLocationEnvironmentCache sHideLocationEnvironmentCache =
+            new HideLocationEnvironmentCache(32);
 
     @GuardedBy("sLocationListeners")
     private static final WeakHashMap<LocationListener, WeakReference<LocationListenerTransport>>
@@ -1679,6 +1683,32 @@ public class LocationManager {
         try {
             mService.injectLocation(location);
             return true;
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Returns whether location-sensitive Wi-Fi and cellular information should be redacted for
+     * the supplied UID in the ROM's per-application virtual location scope.
+     * This does not alter location permission or physical network state.
+     *
+     * @hide
+     */
+    @SystemApi(client = SystemApi.Client.MODULE_LIBRARIES)
+    // ROM-local debug policy contract, built with its callers; no upstream aconfig API rollout.
+    @SuppressLint("UnflaggedApi")
+    @RequiresPermission(LOCATION_HARDWARE)
+    public boolean shouldHideLocationEnvironment(int uid) {
+        Preconditions.checkArgument(uid >= 0);
+        // Callers outside system_server (Telephony) ask on every radio query; the location
+        // service invalidates the cache whenever virtual location policies change.
+        PropertyInvalidatedCache<Integer, Boolean> cache = sHideLocationEnvironmentCache;
+        if (cache != null) {
+            return cache.query(uid);
+        }
+        try {
+            return mService.shouldHideLocationEnvironment(uid);
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
@@ -3729,6 +3759,34 @@ public class LocationManager {
         }
     }
 
+    private static class HideLocationEnvironmentCache
+            extends PropertyInvalidatedCache<Integer, Boolean> {
+
+        // loaded lazily for the same reason as LocationEnabledCache#mManager
+        private @Nullable ILocationManager mManager;
+
+        HideLocationEnvironmentCache(int numEntries) {
+            super(numEntries, CACHE_KEY_HIDE_LOCATION_ENVIRONMENT_PROPERTY);
+        }
+
+        @Override
+        public Boolean recompute(Integer uid) {
+            if (mManager == null) {
+                try {
+                    mManager = getService();
+                } catch (RemoteException e) {
+                    e.rethrowFromSystemServer();
+                }
+            }
+
+            try {
+                return mManager.shouldHideLocationEnvironment(uid);
+            } catch (RemoteException e) {
+                throw e.rethrowFromSystemServer();
+            }
+        }
+    }
+
     /**
      * @hide
      */
@@ -3741,5 +3799,19 @@ public class LocationManager {
      */
     public static void disableLocalLocationEnabledCaches() {
         sLocationEnabledCache = null;
+    }
+
+    /**
+     * @hide
+     */
+    public static void invalidateLocalHideLocationEnvironmentCaches() {
+        PropertyInvalidatedCache.invalidateCache(CACHE_KEY_HIDE_LOCATION_ENVIRONMENT_PROPERTY);
+    }
+
+    /**
+     * @hide
+     */
+    public static void disableLocalHideLocationEnvironmentCaches() {
+        sHideLocationEnvironmentCache = null;
     }
 }
