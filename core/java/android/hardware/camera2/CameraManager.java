@@ -3073,7 +3073,17 @@ public final class CameraManager {
         }
 
         private void onStatusChangedLocked(int status, DeviceCameraInfo info) {
-            if (!Camera.shouldExposeAuxCamera() && Integer.parseInt(info.mCameraId) >= 2) {
+            // Camera ids are not guaranteed to be numerical. Virtual cameras for example use ids
+            // like "v0_1000", and those are never auxiliary cameras, so a failed conversion just
+            // means the id is not covered by the auxiliary camera exposure policy.
+            int auxCameraId = -1;
+            try {
+                auxCameraId = Integer.parseInt(info.mCameraId);
+            } catch (NumberFormatException e) {
+                // Not a numerical camera id, keep the default value.
+            }
+
+            if (!Camera.shouldExposeAuxCamera() && auxCameraId >= 2) {
                 Log.w(TAG, String.format("Ignoring status update of camera %d", info.mDeviceId));
                 return;
             }
