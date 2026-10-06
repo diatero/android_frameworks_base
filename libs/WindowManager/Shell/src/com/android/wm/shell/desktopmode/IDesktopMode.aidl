@@ -104,4 +104,8 @@ interface IDesktopMode {
 
     /** Start a transition when launching an intent in desktop mode */
     void startLaunchIntentTransition(in Intent intent, in Bundle options, in int displayId);
+
+    /** Move a recent/running app between the phone and a trusted wireless desktop. */
+    oneway void moveTaskToDisplay(int taskId, int displayId,
+            in DesktopModeTransitionSource transitionSource);
 }

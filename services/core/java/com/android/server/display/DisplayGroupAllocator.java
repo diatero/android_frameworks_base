@@ -109,6 +109,14 @@ class DisplayGroupAllocator {
             return mCanDefaultDisplayEnterDesktopMode;
         }
 
+        if (type == Display.TYPE_WIFI) {
+            // Wifi desktops always host their own tasks, including on releases where dynamic
+            // display content-mode management is disabled. Read the primary device because
+            // group allocation runs before the logical DisplayInfo has been updated.
+            final DisplayDevice device = display.getPrimaryDisplayDeviceLocked();
+            return device != null && device.getDisplayDeviceInfoLocked().isWifiDisplayDesktopMode();
+        }
+
         if (type == Display.TYPE_EXTERNAL || type == Display.TYPE_OVERLAY) {
             return mInjector.canDisplayHostTasksLocked(display);
         }

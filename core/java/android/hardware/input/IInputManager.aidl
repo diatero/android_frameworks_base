@@ -35,6 +35,7 @@ import android.hardware.input.IVirtualInputDevice;
 import android.hardware.input.KeyboardLayoutSelectionResult;
 import android.hardware.input.TouchCalibration;
 import android.hardware.input.VirtualKeyboardConfig;
+import android.hardware.input.VirtualMouseConfig;
 import android.os.CombinedVibration;
 import android.hardware.input.IInputSensorEventListener;
 import android.hardware.input.IKeyEventActivityListener;
@@ -319,4 +320,8 @@ interface IInputManager {
     PointF getCursorPositionInPhysicalDisplay(int displayId);
 
     PointF getCursorPositionInLogicalDisplay(int displayId);
+
+    // System phone touchpad, restricted to an opted-in trusted Wifi desktop display.
+    @EnforcePermission("INJECT_EVENTS")
+    IVirtualInputDevice createWifiDisplayMouse(in IBinder token, in VirtualMouseConfig config);
 }

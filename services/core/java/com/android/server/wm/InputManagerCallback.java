@@ -259,6 +259,15 @@ final class InputManagerCallback implements InputManagerService.WindowManagerCal
     @Override
     public int getPointerDisplayId() {
         synchronized (mService.mGlobalLock) {
+            // A Wifi desktop must receive a mouse connected to the phone even when the global
+            // developer option for forcing desktop mode on every external display is off.
+            for (int i = mService.mRoot.mChildren.size() - 1; i >= 0; --i) {
+                final DisplayContent dc = mService.mRoot.mChildren.get(i);
+                if (dc.isWifiDisplayDesktopMode()
+                        && dc.getDisplayInfo().state != Display.STATE_OFF) {
+                    return dc.getDisplayId();
+                }
+            }
             // If desktop mode is not enabled, show on the default display.
             if (!mService.mForceDesktopModeOnExternalDisplays) {
                 return DEFAULT_DISPLAY;

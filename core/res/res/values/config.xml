@@ -3424,6 +3424,10 @@
     -->
     <bool name="config_enableWifiDisplay">false</bool>
 
+    <!-- Whether Wifi displays may host an independent desktop. Requires Wifi Display,
+         freeform window management, desktop windowing and a secondary-home launcher. -->
+    <bool name="config_enableWifiDisplayDesktopMode">false</bool>
+
     <!-- Whether the default HDR conversion mode should be passthrough instead of system.
     -->
     <bool name="config_enableDefaultHdrConversionPassthrough">false</bool>

@@ -1049,6 +1049,17 @@ public final class InputManager {
     }
 
     /**
+     * Creates a mouse bound to an opted-in, trusted Wifi desktop. Only the system may use this
+     * entry point. Closing the device or losing its client process releases the input device.
+     * @hide
+     */
+    @NonNull
+    @RequiresPermission(Manifest.permission.INJECT_EVENTS)
+    public VirtualMouse createWifiDisplayMouse(@NonNull VirtualMouseConfig config) {
+        return mGlobal.createWifiDisplayMouse(config);
+    }
+
+    /**
      * Verify the details of an {@link android.view.InputEvent} that came from the system.
      * If the event did not come from the system, or its details could not be verified, then this
      * will return {@code null}. Receiving {@code null} does not mean that the event did not

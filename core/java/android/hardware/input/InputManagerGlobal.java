@@ -1742,6 +1742,18 @@ public final class InputManagerGlobal {
     /**
      * @see InputManager#setPointerIcon(PointerIcon, int, int, int, IBinder)
      */
+    /** @hide */
+    @NonNull
+    @RequiresPermission(Manifest.permission.INJECT_EVENTS)
+    public VirtualMouse createWifiDisplayMouse(@NonNull VirtualMouseConfig config) {
+        try {
+            final IBinder token = new Binder("WifiDisplayMouse:" + config.getInputDeviceName());
+            return new VirtualMouse(config, mIm.createWifiDisplayMouse(token, config));
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
     public boolean setPointerIcon(PointerIcon icon, int displayId, int deviceId, int pointerId,
             IBinder inputToken) {
         try {

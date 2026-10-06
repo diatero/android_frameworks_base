@@ -1088,6 +1088,37 @@ public class InputManagerService extends IInputManager.Stub
         return createVirtualKeyboardInternal(token, config);
     }
 
+    @Override
+    @EnforcePermission(Manifest.permission.INJECT_EVENTS)
+    public IVirtualInputDevice createWifiDisplayMouse(@NonNull IBinder token,
+            @NonNull VirtualMouseConfig config) {
+        super.createWifiDisplayMouse_enforcePermission();
+        Objects.requireNonNull(token);
+        Objects.requireNonNull(config);
+        final int uid = Binder.getCallingUid();
+        if (uid != Process.SYSTEM_UID && uid != 0) {
+            throw new SecurityException("Wifi desktop input is restricted to the system");
+        }
+        final int displayId = config.getAssociatedDisplayId();
+        final DisplayInfo info = mDisplayManagerInternal.getDisplayInfo(displayId);
+        final int requiredFlags = Display.FLAG_OWN_DISPLAY_GROUP
+                | Display.FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS | Display.FLAG_TRUSTED;
+        if (displayId == Display.DEFAULT_DISPLAY || info == null || info.type != Display.TYPE_WIFI
+                || (info.flags & Display.FLAG_PRIVATE) != 0
+                || (info.flags & requiredFlags) != requiredFlags) {
+            throw new IllegalArgumentException("Requires an active trusted Wifi desktop display");
+        }
+        // The existing controller associates the port with the display's unique ID and links the
+        // client token to death. It cannot silently fall back to the phone when WFD disconnects.
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            return mVirtualInputDeviceController.createMouse(config.getInputDeviceName(),
+                    config.getVendorId(), config.getProductId(), token, displayId);
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
     @Override // Binder call
     public VerifiedInputEvent verifyInputEvent(@NonNull InputEvent event) {
         Objects.requireNonNull(event, "event must not be null");

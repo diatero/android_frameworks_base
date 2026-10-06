@@ -5795,6 +5795,11 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
         return true;
     }
 
+    /** Whether the Wifi display connected with an independent desktop selected. */
+    boolean isWifiDisplayDesktopMode() {
+        return mDisplay.isWifiDisplayDesktopMode();
+    }
+
     /**
      * Returns whether the {@param windowingMode} is supported on this display.
      * @param windowingMode The windowing mode to check for.

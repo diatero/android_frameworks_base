@@ -1135,7 +1135,8 @@ class LogicalDisplayMapper implements DisplayDeviceRepository.Listener {
             // and is in projected,extended or non desktop mode
             if (groupId != Display.DEFAULT_DISPLAY_GROUP
                     && (displayDeviceInfo.type == Display.TYPE_INTERNAL
-                            || displayDeviceInfo.type == Display.TYPE_EXTERNAL)
+                            || displayDeviceInfo.type == Display.TYPE_EXTERNAL
+                            || displayDeviceInfo.isWifiDisplayDesktopMode())
                     && (reason == REASON_PROJECTED || reason == REASON_EXTENDED)) {
                 newGroup.setFlags(DisplayGroup.FLAG_DEFAULT_GROUP_ADJACENT);
             }

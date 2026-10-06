@@ -15509,6 +15509,15 @@ public final class Settings {
         public static final String WIFI_DISPLAY_ON = "wifi_display_on";
 
         /**
+         * Whether the next Wifi display connection hosts an independent desktop instead of
+         * mirroring the built-in display. 0=mirror (default), 1=desktop. Changes take effect on
+         * the next connection, and only on devices configured to support Wifi display desktops.
+         * @hide
+         */
+        @Readable
+        public static final String WIFI_DISPLAY_DESKTOP_MODE = "wifi_display_desktop_mode";
+
+        /**
         * Whether Wifi display certification mode is enabled/disabled
         * 0=disabled. 1=enabled.
         * @hide

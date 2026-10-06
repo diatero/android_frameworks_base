@@ -107,8 +107,8 @@ final class AppCompatUtils {
     static boolean isDisplayIgnoreActivitySizeRestrictions(
             @NonNull ActivityRecord activityRecord) {
         final DisplayContent dc = activityRecord.mDisplayContent;
-        return Flags.vdmForceAppUniversalResizableApi() && dc != null
-                && dc.isDisplayIgnoreActivitySizeRestrictions();
+        return dc != null && dc.isDisplayIgnoreActivitySizeRestrictions()
+                && (Flags.vdmForceAppUniversalResizableApi() || dc.isWifiDisplayDesktopMode());
     }
 
     /**

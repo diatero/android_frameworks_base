@@ -8049,7 +8049,8 @@ public class WindowManagerService extends IWindowManager.Stub
             if (!displayContent.isWindowingModeSupported(WINDOWING_MODE_FREEFORM)) {
                 return false;
             }
-            return displayContent.isDefaultDisplay || displayContent.allowContentModeSwitch();
+            return displayContent.isDefaultDisplay || displayContent.allowContentModeSwitch()
+                    || displayContent.isWifiDisplayDesktopMode();
         }
     }
 

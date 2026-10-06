@@ -34,6 +34,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.UserHandle;
+import android.provider.Settings;
 import android.util.Slog;
 import android.view.Display;
 import android.view.DisplayAddress;
@@ -132,6 +133,8 @@ final class WifiDisplayAdapter extends DisplayAdapter {
         pw.println("mRememberedDisplays=" + Arrays.toString(mRememberedDisplays));
         pw.println("mPendingStatusChangeBroadcast=" + mPendingStatusChangeBroadcast);
         pw.println("mSupportsProtectedBuffers=" + mSupportsProtectedBuffers);
+        pw.println("mDesktopModeEnabled=" + (mDisplayDevice != null
+                && mDisplayDevice.getDisplayDeviceInfoLocked().isWifiDisplayDesktopMode()));
 
         // Try to dump the controller state.
         if (mDisplayController == null) {
@@ -403,6 +406,18 @@ final class WifiDisplayAdapter extends DisplayAdapter {
 
         boolean secure = (flags & RemoteDisplay.DISPLAY_FLAG_SECURE) != 0;
         int deviceFlags = DisplayDeviceInfo.FLAG_PRESENTATION;
+        // Select the mode once per connection. Keeping the encoder Surface and display token
+        // unchanged for the session avoids losing tasks or frames during a mode change.
+        if (getContext().getResources().getBoolean(
+                com.android.internal.R.bool.config_enableWifiDisplayDesktopMode)
+                && getContext().getPackageManager().hasSystemFeature(
+                        PackageManager.FEATURE_FREEFORM_WINDOW_MANAGEMENT)
+                && Settings.Global.getInt(getContext().getContentResolver(),
+                        Settings.Global.WIFI_DISPLAY_DESKTOP_MODE, 0) != 0) {
+            deviceFlags |= DisplayDeviceInfo.FLAG_OWN_CONTENT_ONLY
+                    | DisplayDeviceInfo.FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS
+                    | DisplayDeviceInfo.FLAG_OWN_DISPLAY_GROUP;
+        }
         if (secure) {
             deviceFlags |= DisplayDeviceInfo.FLAG_SECURE;
             if (mSupportsProtectedBuffers) {

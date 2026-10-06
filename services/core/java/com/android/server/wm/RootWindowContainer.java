@@ -2847,6 +2847,11 @@ class RootWindowContainer extends WindowContainer<DisplayContent>
                     .shouldShowSystemDecorsLocked(displayContent);
             mWmService.mDisplayManagerInternal.onDisplayBelongToTopologyChanged(
                     displayContent.mDisplayId, inTopology);
+        } else if (displayContent.isWifiDisplayDesktopMode()) {
+            // Static Wifi desktops also need a topology when connected-display cursor routing
+            // is enabled; the legacy default pointer display is ignored in that configuration.
+            mWmService.mDisplayManagerInternal.onDisplayBelongToTopologyChanged(
+                    displayContent.mDisplayId, true);
         }
     }
 

@@ -39,6 +39,14 @@ import java.util.Objects;
  * Describes the characteristics of a physical display device.
  */
 final class DisplayDeviceInfo {
+    /** Whether this system-owned Wifi display was connected in independent desktop mode. */
+    public boolean isWifiDisplayDesktopMode() {
+        final int requiredFlags = FLAG_OWN_CONTENT_ONLY
+                | FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS | FLAG_TRUSTED | FLAG_OWN_DISPLAY_GROUP;
+        return type == Display.TYPE_WIFI && (flags & FLAG_PRIVATE) == 0
+                && (flags & requiredFlags) == requiredFlags;
+    }
+
     /**
      * Flag: Indicates that this display device should be considered the default display
      * device of the system.

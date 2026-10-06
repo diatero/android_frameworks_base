@@ -2166,6 +2166,20 @@ public final class Display {
     }
 
     /**
+     * Returns whether this system-owned Wifi display was connected in independent desktop mode.
+     * The mode remains fixed for the lifetime of the connection.
+     * @hide
+     */
+    public boolean isWifiDisplayDesktopMode() {
+        // Own-content-only is an internal DisplayDeviceInfo flag. At this layer the independent
+        // display group and system decorations identify the corresponding desktop session.
+        final int requiredFlags = FLAG_OWN_DISPLAY_GROUP
+                | FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS | FLAG_TRUSTED;
+        return mType == TYPE_WIFI && (mFlags & FLAG_PRIVATE) == 0
+                && (mFlags & requiredFlags) == requiredFlags;
+    }
+
+    /**
      * @return {@code true} if the display can steal the top focus from another display.
      *
      * @see #FLAG_STEAL_TOP_FOCUS_DISABLED

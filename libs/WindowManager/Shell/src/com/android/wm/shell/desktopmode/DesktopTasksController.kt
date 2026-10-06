@@ -2591,11 +2591,10 @@ class DesktopTasksController(
         val activationRunnable: RunOnTransitStart?
         val deactivationRunnable: RunOnTransitStart?
 
-        if (
-            DesktopExperienceFlags.MOVE_TO_NEXT_DISPLAY_SHORTCUT_WITH_PROJECTED_MODE.isTrue &&
-                desktopState.isProjectedMode() &&
-                displayId == DEFAULT_DISPLAY
-        ) {
+        if (displayId == DEFAULT_DISPLAY &&
+            (isWifiDesktopDisplay(task.displayId) ||
+                (DesktopExperienceFlags.MOVE_TO_NEXT_DISPLAY_SHORTCUT_WITH_PROJECTED_MODE.isTrue &&
+                    desktopState.isProjectedMode()))) {
             logV("moveToDisplay: moving task to default display during projected mode")
             activationRunnable = null
             deactivationRunnable =
@@ -2722,6 +2721,47 @@ class DesktopTasksController(
             )
         deactivationRunnable?.invoke(transition)
         activationRunnable?.invoke(transition)
+    }
+
+    private fun isWifiDesktopDisplay(displayId: Int): Boolean =
+        displayController.getDisplay(displayId)?.isWifiDisplayDesktopMode == true
+
+    /** Explicit destination keeps the task-menu label and the actual target consistent. */
+    private fun moveTaskToWifiDisplay(
+        taskId: Int,
+        displayId: Int,
+        transitionSource: DesktopModeTransitionSource,
+    ) {
+        val destination = displayController.getDisplay(displayId) ?: return
+        if (displayId != DEFAULT_DISPLAY && !destination.isWifiDisplayDesktopMode) return
+        if (destination.state == Display.STATE_OFF) return
+        val task = shellTaskOrganizer.getRunningTaskInfo(taskId)
+        if (task != null) {
+            if (task.displayId != DEFAULT_DISPLAY && !isWifiDesktopDisplay(task.displayId)) return
+            if (displayId != DEFAULT_DISPLAY &&
+                desktopModeCompatPolicy.shouldDisableDesktopEntryPoints(task)) return
+            moveToDisplay(task, displayId, enterReason = transitionSource.getEnterReason())
+        } else {
+            // A task killed in the background is relaunched in place, preserving its task ID.
+            val recent = recentTasksController?.findTaskInBackground(taskId) ?: return
+            if (displayId != DEFAULT_DISPLAY &&
+                desktopModeCompatPolicy.shouldDisableDesktopEntryPoints(recent)) return
+            val options = ActivityOptions.makeBasic().apply {
+                launchDisplayId = displayId
+                launchWindowingMode = if (displayId == DEFAULT_DISPLAY) {
+                    WINDOWING_MODE_FULLSCREEN
+                } else WINDOWING_MODE_FREEFORM
+                if (displayId != DEFAULT_DISPLAY) {
+                    displayController.getDisplayLayout(displayId)?.let {
+                        launchBounds = calculateDefaultDesktopTaskBounds(it)
+                    }
+                }
+                pendingIntentBackgroundActivityStartMode =
+                    ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOW_ALWAYS
+            }
+            transitions.startTransition(TRANSIT_OPEN,
+                WindowContainerTransaction().startTask(taskId, options.toBundle()), null)
+        }
     }
 
     /**
@@ -4918,11 +4958,17 @@ class DesktopTasksController(
         }
         wct.setBounds(taskInfo.token, Rect())
 
-        if (Flags.appCompatRefactoringSetAppboundsToNullWhenEmpty()) {
+        val wifiDisplayTransition = isWifiDesktopDisplay(sourceDisplayId) ||
+            isWifiDesktopDisplay(destinationDisplayId)
+        if (wifiDisplayTransition || Flags.appCompatRefactoringSetAppboundsToNullWhenEmpty()) {
             wct.setAppBounds(taskInfo.token, null)
         }
 
-        if (desktopConfig.useDesktopOverrideDensity) {
+        if (wifiDisplayTransition) {
+            // Remove freeform/phone overrides and inherit the destination display configuration.
+            wct.setScreenSizeDp(taskInfo.token, 0, 0)
+            wct.setDensityDpi(taskInfo.token, 0)
+        } else if (desktopConfig.useDesktopOverrideDensity) {
             wct.setDensityDpi(taskInfo.token, getDefaultDensityDpi())
         }
         if (
@@ -6845,6 +6891,13 @@ class DesktopTasksController(
         override fun startLaunchIntentTransition(intent: Intent, options: Bundle, displayId: Int) {
             executeRemoteCallWithTaskPermission(controller, "startLaunchIntentTransition") { c ->
                 c.startLaunchIntentTransition(intent, options, displayId)
+            }
+        }
+
+        override fun moveTaskToDisplay(taskId: Int, displayId: Int,
+            transitionSource: DesktopModeTransitionSource) {
+            executeRemoteCallWithTaskPermission(controller, "moveTaskToDisplay") { c ->
+                c.moveTaskToWifiDisplay(taskId, displayId, transitionSource)
             }
         }
 
