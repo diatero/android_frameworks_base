@@ -18,9 +18,18 @@ Activity; other SystemUI surfaces keep their own theme. Provider-drawn backgroun
 The provider picker shows the owning application's icon and name alongside each widget label,
 grouped alphabetically by application and then widget label. Selection uses the displayed provider's
 identity, including duplicate labels. Widget preview controls remain unavailable.
-“Always-on display appearance” opens a separate editor with brightness (5–100%), colour saturation
-(0–100%), Standard/High definition clarity, three presets and Reset. Colours and brightness preview
-the same transform as AOD; actual panel brightness remains controlled by the system AOD policy.
+“Always-on display appearance” (under Screen layouts, available without any widget) opens a separate
+editor with brightness (5–100%), colour saturation (0–100%), Standard/High definition clarity, three
+presets and Reset. Brightness is shared by all AOD content: `AodDisplayLayoutSection` applies one
+colour-filter `RenderEffect` to the Keyguard root on stable AOD (`DOZE_AOD`, docked, min-mode), so the
+clock, date/smartspace, notification icons, indications, device-entry icon and widgets dim together.
+Saturation and clarity remain widget-only; the widget snapshot no longer applies brightness itself, so
+the composite colour equals the previous widget transform. Colours and brightness preview the same
+transform as AOD; actual panel brightness remains controlled by the system AOD policy.
+When the proximity sensor reports near, the native doze machine enters `DOZE_AOD_PAUSING` and, after
+`prox_screen_off_delay` (10 s default), `DOZE_AOD_PAUSED` with the display off. During both states the
+root filter makes every module transparent immediately, so covered AOD shows nothing; far returns to
+`DOZE_AOD` and removes the filter. This depends on the device exposing a wake-up proximity sensor.
 Editing, presets and Reset remain drafts until Save, survive rotation and are discarded by Back.
 The awake lockscreen retains the original provider colours and brightness.
 “Screen layouts → Customise display layout” is the single full-screen geometry editor.
@@ -61,7 +70,7 @@ Secure settings for owner user 0:
 | `aod_widget_height` | 120 | Requested height, 64–320 dp |
 | `aod_widget_position_x` | 50 | Horizontal position within available travel, 0–100% |
 | `aod_widget_position_y` | 100 | Vertical position within available travel, 0–100% |
-| `aod_widget_brightness` | 35 | AOD content intensity, 5–100%; 100 removes host dimming |
+| `aod_widget_brightness` | 35 | Intensity of all AOD content (native modules and widgets), 5–100%; 100 removes dimming |
 | `aod_widget_saturation` | 0 | AOD saturation, 0–100%; 0 grayscale, 100 original colour |
 | `aod_widget_high_quality` | 0 | 0 half-resolution Standard, 1 full-resolution High definition |
 | `aod_display_layouts` | unset | Versioned JSON containing four independent display profiles |

@@ -39,7 +39,7 @@
     <string name="aod_widgets_provider_summary">%1$s · %2$s</string>
     <string name="aod_widgets_appearance">Always-on display appearance</string>
     <string name="aod_widgets_appearance_summary">Brightness %1$d%% · Saturation %2$d%% · %3$s</string>
-    <string name="aod_widgets_brightness">Widget brightness</string>
+    <string name="aod_widgets_brightness">Always-on display brightness</string>
     <string name="aod_widgets_saturation">Colour saturation</string>
     <string name="aod_widgets_quality">Clarity</string>
     <string name="aod_widgets_quality_standard">Standard</string>
@@ -52,7 +52,7 @@
     <string name="aod_widgets_save_appearance">Save appearance</string>
     <string name="aod_widgets_reset_appearance">Reset appearance</string>
     <string name="aod_widgets_appearance_preview">Colour and brightness preview</string>
-    <string name="aod_widgets_appearance_hint" formatted="false">These settings apply only to the always-on display widget. Saturation 0% is monochrome; 100% keeps the original colours. High definition makes text clearer and uses more rendering memory. Save to apply, or go back to discard changes. Actual screen brightness is controlled by the system always-on display.</string>
+    <string name="aod_widgets_appearance_hint" formatted="false">Brightness applies to everything on the always-on display: time, date, notifications, battery information and widgets. Saturation and clarity apply only to widgets; saturation 0% is monochrome and 100% keeps the original colours. High definition makes text clearer and uses more rendering memory. The awake lock screen keeps its original appearance. Save to apply, or go back to discard changes. Actual panel brightness is still controlled by the system always-on display.</string>
     <string name="aod_widgets_add">Add widget</string>
     <string name="aod_widgets_limit">You can add up to 8 widgets.</string>
     <string name="aod_widgets_multiple_summary">Each widget has its own position and size in the full-screen layout editor.</string>

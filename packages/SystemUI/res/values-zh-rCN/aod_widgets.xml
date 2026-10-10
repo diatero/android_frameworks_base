@@ -36,7 +36,7 @@
     <string name="aod_widgets_provider_summary">%1$s · %2$s</string>
     <string name="aod_widgets_appearance">息屏显示效果</string>
     <string name="aod_widgets_appearance_summary">亮度 %1$d%% · 饱和度 %2$d%% · %3$s</string>
-    <string name="aod_widgets_brightness">小部件亮度</string>
+    <string name="aod_widgets_brightness">息屏亮度</string>
     <string name="aod_widgets_saturation">色彩饱和度</string>
     <string name="aod_widgets_quality">清晰度</string>
     <string name="aod_widgets_quality_standard">标准</string>
@@ -49,7 +49,7 @@
     <string name="aod_widgets_save_appearance">保存效果</string>
     <string name="aod_widgets_reset_appearance">恢复默认效果</string>
     <string name="aod_widgets_appearance_preview">色彩与亮度预览</string>
-    <string name="aod_widgets_appearance_hint" formatted="false">仅影响息屏小部件，锁屏保留原始效果。饱和度 0% 为灰度，100% 保留原色；高清可让文字更清晰，但占用更多渲染内存。保存后生效，返回可放弃更改。屏幕实际亮度仍由系统息屏显示控制。</string>
+    <string name="aod_widgets_appearance_hint" formatted="false">亮度统一作用于息屏上的时间、日期、通知、电量提示和小部件；饱和度与清晰度仅作用于小部件，饱和度 0% 为灰度，100% 保留原色；高清可让文字更清晰，但占用更多渲染内存。亮屏锁屏保留原始效果。保存后生效，返回可放弃更改。屏幕面板亮度仍由系统息屏显示控制。</string>
     <string name="aod_widgets_add">添加小部件</string>
     <string name="aod_widgets_limit">最多可添加 8 个小部件。</string>
     <string name="aod_widgets_multiple_summary">每个小部件可在全屏布局编辑器中独立调整位置和尺寸。</string>

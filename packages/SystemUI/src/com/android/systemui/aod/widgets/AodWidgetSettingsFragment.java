@@ -56,6 +56,13 @@ public class AodWidgetSettingsFragment extends AodWidgetPreferenceFragment {
         Preference editor = action(display, "display_layout_editor", R.string.aod_layout_edit,
                 activity::editDisplayLayout);
         editor.setSummary(R.string.aod_layout_summary);
+        // Brightness applies to all AOD content, so the entry does not depend on a widget.
+        Preference appearance = action(display, "appearance", R.string.aod_widgets_appearance,
+                activity::editAppearance);
+        appearance.setSummary(getString(R.string.aod_widgets_appearance_summary,
+                AodWidgetStore.brightness(activity), AodWidgetStore.saturation(activity),
+                getString(AodWidgetStore.highQuality(activity)
+                        ? R.string.aod_widgets_quality_high : R.string.aod_widgets_quality_standard)));
         ListPreference rotation = new ListPreference(context);
         rotation.setKey("display_rotation"); rotation.setTitle(R.string.aod_layout_rotation);
         rotation.setEntries(getResources().getStringArray(R.array.aod_layout_rotations));
@@ -91,14 +98,6 @@ public class AodWidgetSettingsFragment extends AodWidgetPreferenceFragment {
                 return true;
             });
             widget.addPreference(item);
-        }
-        if (!AodWidgetStore.widgetIds(activity).isEmpty()) {
-            Preference appearance = action(widget, "appearance", R.string.aod_widgets_appearance,
-                    activity::editAppearance);
-            appearance.setSummary(getString(R.string.aod_widgets_appearance_summary,
-                    AodWidgetStore.brightness(activity), AodWidgetStore.saturation(activity),
-                    getString(AodWidgetStore.highQuality(activity)
-                            ? R.string.aod_widgets_quality_high : R.string.aod_widgets_quality_standard)));
         }
 
         PreferenceCategory privacy = category(screen, "privacy", R.string.aod_widgets_privacy);

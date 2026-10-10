@@ -63,4 +63,22 @@ class AodWidgetPolicyTest : SysuiTestCase() {
         assertThat(AodWidgetPolicy.canShowLockscreen(true, false, false, true, true,
             true, false, false, true, false)).isFalse()
     }
+
+    @Test fun contentBrightnessDimsAodHidesProximityPauseAndLeavesOtherStatesOriginal() {
+        for (state in DozeStateModel.entries) {
+            val expected = when (state) {
+                DozeStateModel.DOZE_AOD, DozeStateModel.DOZE_AOD_DOCKED,
+                DozeStateModel.DOZE_AOD_MINMODE -> 35
+                DozeStateModel.DOZE_AOD_PAUSING, DozeStateModel.DOZE_AOD_PAUSED -> AodWidgetPolicy.HIDDEN
+                else -> AodWidgetPolicy.ORIGINAL
+            }
+            assertThat(AodWidgetPolicy.contentBrightness(state, true, 35)).isEqualTo(expected)
+            assertThat(AodWidgetPolicy.contentBrightness(state, false, 35))
+                .isEqualTo(AodWidgetPolicy.ORIGINAL)
+        }
+        // A corrupt setting never hides AOD content or exceeds the original intensity.
+        assertThat(AodWidgetPolicy.contentBrightness(DozeStateModel.DOZE_AOD, true, -1)).isEqualTo(5)
+        assertThat(AodWidgetPolicy.contentBrightness(DozeStateModel.DOZE_AOD, true, 500))
+            .isEqualTo(AodWidgetPolicy.ORIGINAL)
+    }
 }

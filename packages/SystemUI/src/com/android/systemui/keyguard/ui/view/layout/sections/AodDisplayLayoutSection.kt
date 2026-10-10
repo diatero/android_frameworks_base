@@ -5,6 +5,8 @@ package com.android.systemui.keyguard.ui.view.layout.sections
 
 import android.content.Context
 import android.database.ContentObserver
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.RenderEffect
 import android.os.Handler
 import android.os.Looper
 import android.os.UserHandle
@@ -19,6 +21,9 @@ import com.android.systemui.Dumpable
 import com.android.systemui.aod.widgets.AodLayoutPreviewSource
 import com.android.systemui.aod.widgets.AodDisplayLayoutGeometry
 import com.android.systemui.aod.widgets.AodDisplayLayoutStore
+import com.android.systemui.aod.widgets.AodWidgetAppearance
+import com.android.systemui.aod.widgets.AodWidgetPolicy
+import com.android.systemui.aod.widgets.AodWidgetStore
 import com.android.systemui.dagger.SysUISingleton
 import com.android.systemui.dump.DumpManager
 import com.android.systemui.keyguard.domain.interactor.KeyguardBlueprintInteractor
@@ -70,6 +75,14 @@ class AodDisplayLayoutSection @Inject constructor(
         }
     }
     private val preDraw = ViewTreeObserver.OnPreDrawListener { positionModules(); true }
+    private var brightness = AodWidgetStore.DEFAULT_BRIGHTNESS
+    private var appliedBrightness = AodWidgetPolicy.ORIGINAL
+    private val appearanceObserver = object : ContentObserver(handler) {
+        override fun onChange(selfChange: Boolean) {
+            brightness = AodWidgetStore.brightness(context)
+            applyAppearance()
+        }
+    }
     private data class Original(
         val x: Float, val y: Float, val sx: Float, val sy: Float,
         val pivotX: Float, val pivotY: Float, val visibility: Int,
@@ -108,6 +121,10 @@ class AodDisplayLayoutSection @Inject constructor(
         context.contentResolver.registerContentObserver(Settings.Secure.getUriFor(AodDisplayLayoutStore.KEY),
             false, observer, UserHandle.USER_SYSTEM)
         layouts = AodDisplayLayoutStore.load(context)
+        context.contentResolver.unregisterContentObserver(appearanceObserver)
+        context.contentResolver.registerContentObserver(Settings.Secure.getUriFor(AodWidgetStore.BRIGHTNESS),
+            false, appearanceObserver, UserHandle.USER_SYSTEM)
+        brightness = AodWidgetStore.brightness(context)
         constraintLayout.viewTreeObserver.removeOnPreDrawListener(preDraw)
         // Register after the native burn-in layer; its transforms pause while custom geometry owns
         // the visible modules, avoiding competing transforms and a continuous redraw loop on AOD.
@@ -137,8 +154,24 @@ class AodDisplayLayoutSection @Inject constructor(
     }
     private fun changed() {
         if (index() < 0) restore()
+        applyAppearance()
         handler.removeCallbacks(refresh); handler.post(refresh)
         root?.invalidate()
+    }
+    // One colour filter on the Keyguard root dims clock, date, notifications, indications and
+    // widgets alike on AOD, and keeps everything dark while proximity pauses AOD. Black stays black.
+    private fun applyAppearance() {
+        val view = root ?: return
+        val level = AodWidgetPolicy.contentBrightness(doze, keyguard.isDozing.value, brightness)
+        if (level == appliedBrightness) return
+        appliedBrightness = level
+        view.setRenderEffect(when (level) {
+            AodWidgetPolicy.ORIGINAL -> null
+            AodWidgetPolicy.HIDDEN -> RenderEffect.createColorFilterEffect(
+                ColorMatrixColorFilter(FloatArray(20)))
+            else -> RenderEffect.createColorFilterEffect(
+                ColorMatrixColorFilter(AodWidgetAppearance.brightnessMatrix(level)))
+        })
     }
     private fun original(view: View): Original = saved.getOrPut(view) {
         Original(view.translationX, view.translationY, view.scaleX, view.scaleY,
@@ -298,12 +331,14 @@ class AodDisplayLayoutSection @Inject constructor(
     override fun removeViews(constraintLayout: ConstraintLayout) {
         restore(); bindings.forEach { it.dispose() }; bindings.clear()
         constraintLayout.viewTreeObserver.removeOnPreDrawListener(preDraw)
+        constraintLayout.setRenderEffect(null); appliedBrightness = AodWidgetPolicy.ORIGINAL
+        context.contentResolver.unregisterContentObserver(appearanceObserver)
         context.contentResolver.unregisterContentObserver(observer); handler.removeCallbacks(refresh)
         previewSource.detach(constraintLayout)
         root = null
     }
     override fun dump(pw: PrintWriter, args: Array<String>) {
-        pw.println("customProfile=${index()} transformedViews=${saved.size} doze=$doze")
+        pw.println("customProfile=${index()} transformedViews=${saved.size} doze=$doze contentBrightness=$appliedBrightness")
         val i = index()
         if (i >= 0) layouts.profiles[i].boxes.forEachIndexed { module, box ->
             val r = rect(box)

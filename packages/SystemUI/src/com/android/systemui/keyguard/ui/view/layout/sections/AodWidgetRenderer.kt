@@ -354,8 +354,9 @@ internal class AodWidgetRenderer(
             visibility = View.GONE
             scaleType = ImageView.ScaleType.FIT_CENTER
             contentDescription = context.getString(R.string.aod_widgets_title)
+            // Brightness is applied to the whole Keyguard root by AodDisplayLayoutSection.
             colorFilter = ColorMatrixColorFilter(AodWidgetAppearance.colorMatrix(
-                AodWidgetStore.brightness(context), AodWidgetStore.saturation(context)))
+                AodWidgetPolicy.ORIGINAL, AodWidgetStore.saturation(context)))
             // AOD is display-only. Normal wake gestures lead to the interactive lockscreen.
             isClickable = false
         }
@@ -584,7 +585,7 @@ internal class AodWidgetRenderer(
             val qualityChanged = appearance.get(2) != appearancePreferences.getOrNull(2)
             appearancePreferences = appearance
             image?.colorFilter = ColorMatrixColorFilter(
-                AodWidgetAppearance.colorMatrix(appearance[0], appearance[1]))
+                AodWidgetAppearance.colorMatrix(AodWidgetPolicy.ORIGINAL, appearance[1]))
             // Colours update the existing ImageView immediately; resolution needs a fresh bitmap.
             if (qualityChanged) scheduleRender(contentChanged = true, force = true)
         }

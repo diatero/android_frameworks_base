@@ -26,6 +26,17 @@ public class AodWidgetAppearanceTest extends TestCase {
         assertColour(-1, -1, new float[]{20, 100, 250, 90}, new float[]{grey, grey, grey, 90});
     }
 
+    public void testBrightnessMatrixKeepsHueAndAlpha() {
+        float[] matrix = AodWidgetAppearance.brightnessMatrix(40);
+        float[] input = {20, 100, 250, 90};
+        float[] expected = {8, 40, 100, 90};
+        for (int row = 0; row < 4; row++) {
+            float actual = matrix[row * 5 + 4];
+            for (int col = 0; col < 4; col++) actual += matrix[row * 5 + col] * input[col];
+            assertEquals(expected[row], actual, .001f);
+        }
+    }
+
     public void testQualityDimensionsAreBoundedAndHandleOddSizes() {
         assertEquals(451, AodWidgetAppearance.bitmapDimension(902, false));
         assertEquals(902, AodWidgetAppearance.bitmapDimension(902, true));

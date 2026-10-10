@@ -36,4 +36,19 @@ object AodWidgetPolicy {
         keyguardShowing && !occluded && !bouncerShowing && ownerUser && !switchingUser && enabled &&
             (keyguardDismissible || showWhenLocked) &&
             (state == DozeStateModel.DOZE_AOD || state == DozeStateModel.DOZE_AOD_DOCKED)
+
+    /**
+     * Shared intensity for all AOD content: [ORIGINAL] when awake or pulsing, the saved
+     * brightness on stable AOD, and [HIDDEN] while proximity pauses AOD.
+     */
+    fun contentBrightness(state: DozeStateModel, dozing: Boolean, brightness: Int): Int = when {
+        !dozing -> ORIGINAL
+        state == DozeStateModel.DOZE_AOD_PAUSING || state == DozeStateModel.DOZE_AOD_PAUSED -> HIDDEN
+        state == DozeStateModel.DOZE_AOD || state == DozeStateModel.DOZE_AOD_DOCKED ||
+            state == DozeStateModel.DOZE_AOD_MINMODE -> brightness.coerceIn(5, ORIGINAL)
+        else -> ORIGINAL
+    }
+
+    const val ORIGINAL = 100
+    const val HIDDEN = 0
 }

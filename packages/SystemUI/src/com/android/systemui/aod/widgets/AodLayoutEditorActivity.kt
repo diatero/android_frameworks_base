@@ -418,7 +418,9 @@ class AodLayoutEditorActivity @Inject constructor(
                 val w = content.bitmap.width * scale; val h = content.bitmap.height * scale
                 val fitted = RectF(destination.centerX() - w / 2, destination.centerY() - h / 2,
                     destination.centerX() + w / 2, destination.centerY() + h / 2)
-                paint.colorFilter = null
+                // AOD shares one brightness across native modules and widgets.
+                paint.colorFilter = if (target < 2) ColorMatrixColorFilter(AodWidgetAppearance
+                    .brightnessMatrix(AodWidgetStore.brightness(this@AodLayoutEditorActivity))) else null
                 c.drawBitmap(content.bitmap, null, fitted, paint)
             }
         }

@@ -24,6 +24,7 @@ public class AodWidgetAppearanceFragment extends AodWidgetPreferenceFragment {
     private SliderPreference mSaturation;
     private ListPreference mQuality;
     private ListPreference mPreset;
+    private PreferenceCategory mPreviewCategory;
     private FrameLayout mPreviewFrame;
     private View mPreview;
 
@@ -100,6 +101,7 @@ public class AodWidgetAppearanceFragment extends AodWidgetPreferenceFragment {
         screen.addPreference(hint);
 
         PreferenceCategory preview = new PreferenceCategory(context);
+        mPreviewCategory = preview;
         preview.setKey("aod_preview");
         preview.setTitle(R.string.aod_widgets_appearance_preview);
         preview.setIconSpaceReserved(false);
@@ -130,6 +132,8 @@ public class AodWidgetAppearanceFragment extends AodWidgetPreferenceFragment {
             mPreview = activity.createPreview(info);
             mPreviewFrame.addView(mPreview);
         }
+        // Without a widget there is nothing to preview here; the layout editor shows all modules.
+        mPreviewCategory.setVisible(mPreview != null);
         refreshValues();
     }
 

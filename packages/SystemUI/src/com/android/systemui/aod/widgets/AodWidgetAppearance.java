@@ -21,6 +21,11 @@ public final class AodWidgetAppearance {
         };
     }
 
+    /** Brightness only; used for the whole AOD content so modules share one setting. */
+    public static float[] brightnessMatrix(int brightness) {
+        return colorMatrix(brightness, 100);
+    }
+
     public static int bitmapDimension(int dimension, boolean highQuality) {
         return Math.max(1, highQuality ? dimension : dimension / 2);
     }
