@@ -263,7 +263,7 @@ final class InputManagerCallback implements InputManagerService.WindowManagerCal
             // developer option for forcing desktop mode on every external display is off.
             for (int i = mService.mRoot.mChildren.size() - 1; i >= 0; --i) {
                 final DisplayContent dc = mService.mRoot.mChildren.get(i);
-                if (dc.isWifiDisplayDesktopMode()
+                if (dc.isIndependentDesktopMode()
                         && dc.getDisplayInfo().state != Display.STATE_OFF) {
                     return dc.getDisplayId();
                 }

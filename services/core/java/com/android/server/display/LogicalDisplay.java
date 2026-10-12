@@ -504,6 +504,9 @@ final class LogicalDisplay {
             if ((deviceInfo.flags & DisplayDeviceInfo.FLAG_OWN_DISPLAY_GROUP) != 0) {
                 mBaseDisplayInfo.flags |= Display.FLAG_OWN_DISPLAY_GROUP;
             }
+            if ((deviceInfo.flags & DisplayDeviceInfo.FLAG_USB_DESKTOP) != 0) {
+                mBaseDisplayInfo.flags |= Display.FLAG_USB_DESKTOP;
+            }
             if ((deviceInfo.flags & DisplayDeviceInfo.FLAG_ALWAYS_UNLOCKED) != 0) {
                 mBaseDisplayInfo.flags |= Display.FLAG_ALWAYS_UNLOCKED;
             }

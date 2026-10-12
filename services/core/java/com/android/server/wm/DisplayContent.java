@@ -5796,8 +5796,8 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
     }
 
     /** Whether the Wifi display connected with an independent desktop selected. */
-    boolean isWifiDisplayDesktopMode() {
-        return mDisplay.isWifiDisplayDesktopMode();
+    boolean isIndependentDesktopMode() {
+        return mDisplay.isIndependentDesktopMode();
     }
 
     /**

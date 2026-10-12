@@ -47,6 +47,15 @@ final class DisplayDeviceInfo {
                 && (flags & requiredFlags) == requiredFlags;
     }
 
+    /** Includes only virtual sessions explicitly admitted by VirtualDisplayAdapter. */
+    public boolean isIndependentDesktopMode() {
+        if (isWifiDisplayDesktopMode()) return true;
+        final int required = FLAG_USB_DESKTOP | FLAG_OWN_CONTENT_ONLY
+                | FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS | FLAG_TRUSTED | FLAG_OWN_DISPLAY_GROUP;
+        return type == Display.TYPE_VIRTUAL && (flags & required) == required
+                && (flags & (FLAG_PRIVATE | FLAG_ALWAYS_UNLOCKED)) == 0;
+    }
+
     /**
      * Flag: Indicates that this display device should be considered the default display
      * device of the system.
@@ -210,6 +219,9 @@ final class DisplayDeviceInfo {
      * @hide
      */
     public static final int FLAG_ALLOWS_CONTENT_MODE_SWITCH = 1 << 20;
+
+    /** System-admitted USB desktop session; not a caller-supplied virtual-display flag. */
+    public static final int FLAG_USB_DESKTOP = 1 << 21;
 
     /**
      * Touch attachment: Display does not receive touch.
@@ -770,6 +782,9 @@ final class DisplayDeviceInfo {
         }
         if ((flags & FLAG_OWN_DISPLAY_GROUP) != 0) {
             msg.append(", FLAG_OWN_DISPLAY_GROUP");
+        }
+        if ((flags & FLAG_USB_DESKTOP) != 0) {
+            msg.append(", FLAG_USB_DESKTOP");
         }
         if ((flags & FLAG_ALWAYS_UNLOCKED) != 0) {
             msg.append(", FLAG_ALWAYS_UNLOCKED");

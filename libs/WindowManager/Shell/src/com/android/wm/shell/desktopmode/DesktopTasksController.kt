@@ -2724,7 +2724,7 @@ class DesktopTasksController(
     }
 
     private fun isWifiDesktopDisplay(displayId: Int): Boolean =
-        displayController.getDisplay(displayId)?.isWifiDisplayDesktopMode == true
+        displayController.getDisplay(displayId)?.isIndependentDesktopMode == true
 
     /** Explicit destination keeps the task-menu label and the actual target consistent. */
     private fun moveTaskToWifiDisplay(
@@ -2733,7 +2733,7 @@ class DesktopTasksController(
         transitionSource: DesktopModeTransitionSource,
     ) {
         val destination = displayController.getDisplay(displayId) ?: return
-        if (displayId != DEFAULT_DISPLAY && !destination.isWifiDisplayDesktopMode) return
+        if (displayId != DEFAULT_DISPLAY && !destination.isIndependentDesktopMode) return
         if (destination.state == Display.STATE_OFF) return
         val task = shellTaskOrganizer.getRunningTaskInfo(taskId)
         if (task != null) {

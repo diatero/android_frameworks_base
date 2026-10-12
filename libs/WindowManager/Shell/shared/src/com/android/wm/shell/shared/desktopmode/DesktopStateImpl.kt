@@ -122,7 +122,7 @@ class DesktopStateImpl(context: Context) : DesktopState {
         if (display.type == Display.TYPE_INTERNAL) return canInternalDisplayHostDesktops
         // Wifi desktop sessions opt in for the entire connection. They don't depend on the
         // global mirroring/extended-display setting or the dynamic content-mode feature.
-        if (display.isWifiDisplayDesktopMode) {
+        if (display.isIndependentDesktopMode) {
             return windowManager?.isEligibleForDesktopMode(display.displayId) ?: false
         }
         if (!DesktopExperienceFlags.ENABLE_DISPLAY_CONTENT_MODE_MANAGEMENT.isTrue) return false

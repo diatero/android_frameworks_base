@@ -1101,12 +1101,9 @@ public class InputManagerService extends IInputManager.Stub
         }
         final int displayId = config.getAssociatedDisplayId();
         final DisplayInfo info = mDisplayManagerInternal.getDisplayInfo(displayId);
-        final int requiredFlags = Display.FLAG_OWN_DISPLAY_GROUP
-                | Display.FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS | Display.FLAG_TRUSTED;
-        if (displayId == Display.DEFAULT_DISPLAY || info == null || info.type != Display.TYPE_WIFI
-                || (info.flags & Display.FLAG_PRIVATE) != 0
-                || (info.flags & requiredFlags) != requiredFlags) {
-            throw new IllegalArgumentException("Requires an active trusted Wifi desktop display");
+        if (displayId == Display.DEFAULT_DISPLAY || info == null
+                || !info.isIndependentDesktopMode()) {
+            throw new IllegalArgumentException("Requires an active trusted independent desktop");
         }
         // The existing controller associates the port with the display's unique ID and links the
         // client token to death. It cannot silently fall back to the phone when WFD disconnects.

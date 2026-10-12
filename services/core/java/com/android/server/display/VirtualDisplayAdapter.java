@@ -22,6 +22,7 @@ import static android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_CAN_S
 import static android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL;
 import static android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP;
 import static android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_DISPLAY_GROUP;
+import static android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY;
 import static android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_FOCUS;
 import static android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION;
 import static android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC;
@@ -49,6 +50,7 @@ import android.os.IBinder;
 import android.os.IBinder.DeathRecipient;
 import android.os.Message;
 import android.os.PowerManager;
+import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemProperties;
 import android.util.ArrayMap;
@@ -104,6 +106,19 @@ public class VirtualDisplayAdapter extends DisplayAdapter {
 
     private final Handler mHandler;
     private final SurfaceControlDisplayFactory mSurfaceControlDisplayFactory;
+
+    /** ADB authorization admits the shell, but ordinary scrcpy/application displays stay native. */
+    @VisibleForTesting
+    static boolean isUsbDesktop(boolean enabled, int uid, String packageName, String name,
+            int flags) {
+        final int required = VIRTUAL_DISPLAY_FLAG_PUBLIC | VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY
+                | VIRTUAL_DISPLAY_FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS
+                | VIRTUAL_DISPLAY_FLAG_TRUSTED | VIRTUAL_DISPLAY_FLAG_OWN_DISPLAY_GROUP;
+        return enabled && uid == Process.SHELL_UID && "com.android.shell".equals(packageName)
+                && "usbcast-desktop".equals(name) && (flags & required) == required
+                && (flags & (VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR
+                        | VIRTUAL_DISPLAY_FLAG_ALWAYS_UNLOCKED)) == 0;
+    }
 
     // Called with SyncRoot lock held.
     public VirtualDisplayAdapter(DisplayManagerService.SyncRoot syncRoot,
@@ -692,6 +707,12 @@ public class VirtualDisplayAdapter extends DisplayAdapter {
 
                 mInfo.ownerUid = mOwnerUid;
                 mInfo.ownerPackageName = mOwnerPackageName;
+                // Reuse the private overlay's opt-in desktop capability; without it this is native.
+                if (isUsbDesktop(getContext().getResources().getBoolean(
+                        R.bool.config_enableWifiDisplayDesktopMode), mOwnerUid, mOwnerPackageName,
+                        mName, mFlags)) {
+                    mInfo.flags |= DisplayDeviceInfo.FLAG_USB_DESKTOP;
+                }
 
                 mInfo.displayShape =
                         DisplayShape.createDefaultDisplayShape(mInfo.width, mInfo.height, false);

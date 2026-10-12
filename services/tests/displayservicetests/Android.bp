@@ -8,6 +8,18 @@ package {
     default_team: "trendy_team_display_framework",
 }
 
+// Keep independent-desktop admission checks separate from unrelated display test dependencies.
+android_test {
+    name: "IndependentDesktopTests",
+    manifest: "IndependentDesktopTestsManifest.xml",
+    srcs: ["src/com/android/server/display/WifiDisplayDesktopModeTest.java"],
+    static_libs: ["androidx.test.runner", "junit", "services.core"],
+    platform_apis: true,
+    certificate: "platform",
+    test_suites: ["device-tests"],
+    optimize: { enabled: false },
+}
+
 android_test {
     name: "DisplayServiceTests",
 

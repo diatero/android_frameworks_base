@@ -10,6 +10,8 @@ import static org.junit.Assert.assertTrue;
 import android.view.Display;
 import android.view.DisplayAdjustments;
 import android.view.DisplayInfo;
+import android.hardware.display.DisplayManager;
+import android.os.Process;
 
 import org.junit.Test;
 
@@ -64,6 +66,71 @@ public class WifiDisplayDesktopModeTest {
                 Display.TYPE_VIRTUAL, Display.TYPE_OVERLAY}) {
             assertFalse(device(type, DEVICE_DESKTOP_FLAGS).isWifiDisplayDesktopMode());
             assertFalse(display(type, DISPLAY_DESKTOP_FLAGS).isWifiDisplayDesktopMode());
+        }
+    }
+
+    @Test
+    public void admittedUsbDesktop_isIndependentButNotWifi() {
+        final DisplayDeviceInfo device = device(Display.TYPE_VIRTUAL,
+                DEVICE_DESKTOP_FLAGS | DisplayDeviceInfo.FLAG_USB_DESKTOP);
+        final Display display = display(Display.TYPE_VIRTUAL,
+                DISPLAY_DESKTOP_FLAGS | Display.FLAG_USB_DESKTOP);
+        assertTrue(device.isIndependentDesktopMode());
+        assertTrue(display.isIndependentDesktopMode());
+        assertFalse(device.isWifiDisplayDesktopMode());
+        assertFalse(display.isWifiDisplayDesktopMode());
+    }
+
+    @Test
+    public void ordinaryOrUnlockedVirtualDisplay_isNotIndependentDesktop() {
+        assertFalse(device(Display.TYPE_VIRTUAL, DEVICE_DESKTOP_FLAGS).isIndependentDesktopMode());
+        assertFalse(display(Display.TYPE_VIRTUAL, DISPLAY_DESKTOP_FLAGS).isIndependentDesktopMode());
+        assertFalse(device(Display.TYPE_VIRTUAL, DEVICE_DESKTOP_FLAGS
+                | DisplayDeviceInfo.FLAG_USB_DESKTOP | DisplayDeviceInfo.FLAG_ALWAYS_UNLOCKED)
+                .isIndependentDesktopMode());
+        assertFalse(display(Display.TYPE_VIRTUAL, DISPLAY_DESKTOP_FLAGS
+                | Display.FLAG_USB_DESKTOP | Display.FLAG_ALWAYS_UNLOCKED)
+                .isIndependentDesktopMode());
+        for (int flag : new int[] {Display.FLAG_OWN_DISPLAY_GROUP,
+                Display.FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS, Display.FLAG_TRUSTED}) {
+            assertFalse(display(Display.TYPE_VIRTUAL,
+                    (DISPLAY_DESKTOP_FLAGS & ~flag) | Display.FLAG_USB_DESKTOP)
+                    .isIndependentDesktopMode());
+        }
+        assertFalse(display(Display.TYPE_VIRTUAL, DISPLAY_DESKTOP_FLAGS
+                | Display.FLAG_USB_DESKTOP | Display.FLAG_PRIVATE).isIndependentDesktopMode());
+    }
+
+    @Test
+    public void usbAdmission_requiresOptInShellIdentityAndSafeFlags() {
+        final int flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC
+                | DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY
+                | DisplayManager.VIRTUAL_DISPLAY_FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS
+                | DisplayManager.VIRTUAL_DISPLAY_FLAG_TRUSTED
+                | DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_DISPLAY_GROUP;
+        assertTrue(VirtualDisplayAdapter.isUsbDesktop(true, Process.SHELL_UID,
+                "com.android.shell", "usbcast-desktop", flags));
+        assertFalse(VirtualDisplayAdapter.isUsbDesktop(false, Process.SHELL_UID,
+                "com.android.shell", "usbcast-desktop", flags));
+        assertFalse(VirtualDisplayAdapter.isUsbDesktop(true, 10000,
+                "com.android.shell", "usbcast-desktop", flags));
+        assertFalse(VirtualDisplayAdapter.isUsbDesktop(true, Process.SHELL_UID,
+                "another.package", "usbcast-desktop", flags));
+        assertFalse(VirtualDisplayAdapter.isUsbDesktop(true, Process.SHELL_UID,
+                "com.android.shell", "scrcpy", flags));
+        assertFalse(VirtualDisplayAdapter.isUsbDesktop(true, Process.SHELL_UID,
+                "com.android.shell", "usbcast-desktop",
+                flags | DisplayManager.VIRTUAL_DISPLAY_FLAG_ALWAYS_UNLOCKED));
+        assertFalse(VirtualDisplayAdapter.isUsbDesktop(true, Process.SHELL_UID,
+                "com.android.shell", "usbcast-desktop",
+                flags | DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR));
+        for (int flag : new int[] {DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_TRUSTED,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_DISPLAY_GROUP}) {
+            assertFalse(VirtualDisplayAdapter.isUsbDesktop(true, Process.SHELL_UID,
+                    "com.android.shell", "usbcast-desktop", flags & ~flag));
         }
     }
 

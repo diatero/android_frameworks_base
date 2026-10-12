@@ -108,7 +108,7 @@ final class AppCompatUtils {
             @NonNull ActivityRecord activityRecord) {
         final DisplayContent dc = activityRecord.mDisplayContent;
         return dc != null && dc.isDisplayIgnoreActivitySizeRestrictions()
-                && (Flags.vdmForceAppUniversalResizableApi() || dc.isWifiDisplayDesktopMode());
+                && (Flags.vdmForceAppUniversalResizableApi() || dc.isIndependentDesktopMode());
     }
 
     /**

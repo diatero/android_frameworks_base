@@ -8050,7 +8050,7 @@ public class WindowManagerService extends IWindowManager.Stub
                 return false;
             }
             return displayContent.isDefaultDisplay || displayContent.allowContentModeSwitch()
-                    || displayContent.isWifiDisplayDesktopMode();
+                    || displayContent.isIndependentDesktopMode();
         }
     }
 

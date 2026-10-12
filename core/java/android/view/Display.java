@@ -414,6 +414,12 @@ public final class Display {
     public static final int FLAG_ALLOWS_CONTENT_MODE_SWITCH = 1 << 15;
 
     /**
+     * System-admitted USB desktop session. Applications cannot request this flag.
+     * @hide
+     */
+    public static final int FLAG_USB_DESKTOP = 1 << 16;
+
+    /**
      * Display flag: Indicates that the contents of the display should not be scaled
      * to fit the physical screen dimensions.  Used for development only to emulate
      * devices with smaller physicals screens while preserving density.
@@ -2177,6 +2183,16 @@ public final class Display {
                 | FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS | FLAG_TRUSTED;
         return mType == TYPE_WIFI && (mFlags & FLAG_PRIVATE) == 0
                 && (mFlags & requiredFlags) == requiredFlags;
+    }
+
+    /**
+     * Returns whether this display hosts an opt-in Wi-Fi or USB independent desktop.
+     * @hide
+     */
+    public boolean isIndependentDesktopMode() {
+        synchronized (mLock) {
+            return mDisplayInfo.isIndependentDesktopMode();
+        }
     }
 
     /**

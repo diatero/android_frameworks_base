@@ -301,12 +301,9 @@ class DisplayTopologyCoordinator {
         if (info == null) {
             return false;
         }
-        // This system-created Wifi session explicitly opted into independent desktop content.
+        // These system-admitted sessions explicitly opted into independent desktop content.
         // Allow it even without enabling the global force-desktop developer setting.
-        final int wifiDesktopFlags = Display.FLAG_OWN_DISPLAY_GROUP
-                | Display.FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS | Display.FLAG_TRUSTED;
-        if (info.type == Display.TYPE_WIFI && (info.flags & Display.FLAG_PRIVATE) == 0
-                && (info.flags & wifiDesktopFlags) == wifiDesktopFlags) {
+        if (info.isIndependentDesktopMode()) {
             return true;
         }
         if (info.type != Display.TYPE_INTERNAL && info.type != Display.TYPE_EXTERNAL

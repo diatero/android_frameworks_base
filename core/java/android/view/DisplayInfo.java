@@ -56,6 +56,17 @@ import java.util.Objects;
  */
 @android.ravenwood.annotation.RavenwoodKeepWholeClass
 public final class DisplayInfo implements Parcelable {
+    /** Whether the system admitted this public, trusted display as an independent desktop. */
+    public boolean isIndependentDesktopMode() {
+        final int required = Display.FLAG_OWN_DISPLAY_GROUP
+                | Display.FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS | Display.FLAG_TRUSTED;
+        final boolean desktopType = type == Display.TYPE_WIFI
+                || (type == Display.TYPE_VIRTUAL && (flags & Display.FLAG_USB_DESKTOP) != 0
+                        && (flags & Display.FLAG_ALWAYS_UNLOCKED) == 0);
+        return desktopType && (flags & Display.FLAG_PRIVATE) == 0
+                && (flags & required) == required;
+    }
+
     /**
      * The surface flinger layer stack associated with this logical display.
      */
@@ -1301,6 +1312,9 @@ public final class DisplayInfo implements Parcelable {
         }
         if ((flags & Display.FLAG_ALLOWS_CONTENT_MODE_SWITCH) != 0) {
             result.append(", FLAG_ALLOWS_CONTENT_MODE_SWITCH");
+        }
+        if ((flags & Display.FLAG_USB_DESKTOP) != 0) {
+            result.append(", FLAG_USB_DESKTOP");
         }
         return result.toString();
     }

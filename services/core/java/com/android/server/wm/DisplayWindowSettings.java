@@ -157,7 +157,7 @@ class DisplayWindowSettings {
         // No record is present so use default windowing mode policy.
         final boolean forceFreeForm = mService.mAtmService.mSupportsFreeformWindowManagement
                 && (mService.mIsPc || dc.isPublicSecondaryDisplayWithDesktopModeForceEnabled()
-                        || dc.isWifiDisplayDesktopMode());
+                        || dc.isIndependentDesktopMode());
         if (forceFreeForm) {
             return WindowConfiguration.WINDOWING_MODE_FREEFORM;
         }
@@ -323,7 +323,7 @@ class DisplayWindowSettings {
         final DisplayInfo displayInfo = dc.getDisplayInfo();
         final SettingsProvider.SettingsEntry settings = mSettingsProvider.getSettings(displayInfo);
         return settings.mIgnoreActivitySizeRestrictions != null
-                ? settings.mIgnoreActivitySizeRestrictions : dc.isWifiDisplayDesktopMode();
+                ? settings.mIgnoreActivitySizeRestrictions : dc.isIndependentDesktopMode();
     }
 
     void setIgnoreActivitySizeRestrictionsOnDisplayLocked(@NonNull String displayUniqueId,
@@ -361,7 +361,7 @@ class DisplayWindowSettings {
         // display has not explicitly requested for the IME to be hidden then it shall show the IME
         // locally.
         if (dc.isPublicSecondaryDisplayWithDesktopModeForceEnabled()
-                || dc.isWifiDisplayDesktopMode()
+                || dc.isIndependentDesktopMode()
                 || (DesktopExperienceFlags.ENABLE_DISPLAY_CONTENT_MODE_MANAGEMENT.isTrue()
                 && dc.isSystemDecorationsSupported() && dc.allowContentModeSwitch())) {
             return DISPLAY_IME_POLICY_LOCAL;
