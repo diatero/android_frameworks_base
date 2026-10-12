@@ -50,6 +50,7 @@ import android.os.RemoteException
 import android.os.Trace
 import android.os.UserHandle
 import android.os.UserManager
+import android.provider.Settings
 import android.util.Slog
 import android.view.Display
 import android.view.Display.DEFAULT_DISPLAY
@@ -2625,7 +2626,11 @@ class DesktopTasksController(
                     )
                     return
                 }
-                addMoveToDeskTaskChanges(wct = wct, task = task, deskId = destinationDeskId)
+                if (shouldLaunchFullscreenOnWifiDesktop(displayId)) {
+                    addMoveToFullscreenChanges(wct, task, willExitDesktop = false, displayId)
+                } else {
+                    addMoveToDeskTaskChanges(wct = wct, task = task, deskId = destinationDeskId)
+                }
             } else {
                 if (DesktopExperienceFlags.ENABLE_MULTIPLE_DESKTOPS_BACKEND.isTrue) {
                     desksOrganizer.moveTaskToDesk(wct, destinationDeskId, task)
@@ -2726,6 +2731,11 @@ class DesktopTasksController(
     private fun isWifiDesktopDisplay(displayId: Int): Boolean =
         displayController.getDisplay(displayId)?.isIndependentDesktopMode == true
 
+    /** Whether apps opened on an independent desktop start fullscreen (Cast settings, default on). */
+    private fun shouldLaunchFullscreenOnWifiDesktop(displayId: Int): Boolean =
+        isWifiDesktopDisplay(displayId) &&
+            Settings.Global.getInt(context.contentResolver, WIFI_DISPLAY_DESKTOP_FULLSCREEN, 1) != 0
+
     /** Explicit destination keeps the task-menu label and the actual target consistent. */
     private fun moveTaskToWifiDisplay(
         taskId: Int,
@@ -2748,10 +2758,11 @@ class DesktopTasksController(
                 desktopModeCompatPolicy.shouldDisableDesktopEntryPoints(recent)) return
             val options = ActivityOptions.makeBasic().apply {
                 launchDisplayId = displayId
-                launchWindowingMode = if (displayId == DEFAULT_DISPLAY) {
-                    WINDOWING_MODE_FULLSCREEN
-                } else WINDOWING_MODE_FREEFORM
-                if (displayId != DEFAULT_DISPLAY) {
+                val fullscreen = displayId == DEFAULT_DISPLAY ||
+                    shouldLaunchFullscreenOnWifiDesktop(displayId)
+                launchWindowingMode =
+                    if (fullscreen) WINDOWING_MODE_FULLSCREEN else WINDOWING_MODE_FREEFORM
+                if (!fullscreen) {
                     displayController.getDisplayLayout(displayId)?.let {
                         launchBounds = calculateDefaultDesktopTaskBounds(it)
                     }
@@ -4166,6 +4177,11 @@ class DesktopTasksController(
 
         val placeAsDesktopTask =
             when {
+                // New apps on an independent desktop start fullscreen unless the windowed option is set.
+                enterReason == EnterReason.TASK_LAUNCH &&
+                    requestedTaskBounds == null &&
+                    !isKnownDesktopTask &&
+                    shouldLaunchFullscreenOnWifiDesktop(targetDisplayId) -> false
                 // If there is no desk on the target display, then it is not capable of handling
                 // desktop tasks.
                 targetDeskId == null -> false
@@ -4467,6 +4483,12 @@ class DesktopTasksController(
         task: RunningTaskInfo,
         @WindowManager.TransitionType requestType: Int,
     ): Boolean {
+        if (
+            shouldLaunchFullscreenOnWifiDesktop(task.displayId) &&
+                !userRepositories.getProfile(task.userId).isActiveTask(task.taskId)
+        ) {
+            return false
+        }
         if (isDesktopFirstLegacy(task.displayId)) {
             // We're in desktop-first mode.
             val forceEnterDesktop = shouldForceEnterDesktopByDesktopFirstPolicy(task, requestType)
@@ -6951,6 +6973,9 @@ class DesktopTasksController(
         private val APP_HANDLE_DRAG_HOLD_CUJ_TIMEOUT_MS: Long = TimeUnit.SECONDS.toMillis(10L)
 
         private const val TAG = "DesktopTasksController"
+
+        // Settings.Global key written by Cast settings; kept out of the framework API.
+        private const val WIFI_DISPLAY_DESKTOP_FULLSCREEN = "wifi_display_desktop_fullscreen"
 
         private fun DesktopTaskToFrontReason.toUnminimizeReason(): UnminimizeReason =
             when (this) {

@@ -6,7 +6,7 @@ The first implementation adds an opt-in, independent desktop to an existing Mira
 connection. The phone keeps its mobile home screen; the wireless display hosts secondary
 Home, freeform application windows, and the existing WM Shell window decorations.
 The follow-up implementation provides a foreground phone touchpad in Cast settings after a
-desktop connection is established. It supports movement, clicking, long-press dragging,
+desktop connection is established. It supports movement, clicking, tap-then-touch dragging,
 two-finger scrolling, and external Back/Home controls. Bluetooth/USB mice and keyboards can
 also be connected to the phone. Phone IME bridging and receiver-side UIBC input are not
 implemented by this change. The follow-up touchpad's interaction remains unverified until
@@ -328,6 +328,52 @@ Evidence, exact hashes, baseline XML backup and restore instructions are in
 `out/build-logs/wifi-desktop-stutter-20261004/README.md`. The generator now accepts an explicit
 `--idr-interval-seconds` while preserving the original interval by default.
 
+### Follow-up: fullscreen apps and touchpad tap-drag (2026-10-12)
+
+Apps opened on an independent desktop (Wi-Fi or admitted USB) now start in fullscreen
+windowing mode instead of a freeform window. Cast settings has **Open apps in fullscreen**
+(`Settings.Global` `wifi_display_desktop_fullscreen`, unset/1 = fullscreen, 0 = previous
+windowed behavior). The key is a string literal shared by Settings and WM Shell, so no
+framework API changes. The setting is read when a task is placed and applies without
+reconnecting.
+
+WM Shell `DesktopTasksController` applies it only to new placements:
+
+- `handleFreeformTaskPlacement` with `EnterReason.TASK_LAUNCH`, no requested bounds, and a
+  task not yet in a desk is placed with `addMoveToFullscreenChanges` instead of the desk.
+- `shouldFullscreenTaskLaunchSwitchToDesktop` keeps such fullscreen launches fullscreen.
+- Moving a phone task to the desktop and relaunching a background recent task there use
+  fullscreen.
+
+The user's own switch to a window (handle/caption menu), client fullscreen exits, drags with
+requested bounds, and tasks already in a desk keep upstream behavior. Shell skips placement
+while the keyguard is locked, as before.
+
+The phone touchpad no longer presses the button on touch or long press. A tap clicks after
+the system double-tap timeout. Touching again within that window holds the left button, so
+moving drags and lifting completes a double click. Two-finger tap right-clicks. The cost is a
+double-tap-timeout delay for a single tap; the on-screen Left click button stays immediate.
+
+Build: `JOBS=6 bash tools/build-umi.sh desktop-apps` (SystemUI and Settings only), log
+`out/build-logs/build-umi-20261012-222145-1418664-desktop-apps.log`. The six SystemUI/Settings
+APK/odex/vdex files were deployed to the remounted `/system_ext` overlay on umi `e86ac055`
+with matching SHA-256 values. Only SystemUI and Settings were restarted; the live USB desktop
+session stayed connected. Backups, outputs and the deployment record are in
+`out/desktop-maximize-touchpad-drag/20261012-210301/`.
+
+Results on the live `usbcast-desktop` display 3, with the phone unlocked:
+
+- With the setting at its default, Shell logged `placeAsFullscreenTask=true`. The Calculator
+  task was `fullscreen` with bounds `[0,0][1920,1080]`.
+- With the setting at 0, the same launch was `placeAsDesktopTask=true` and opened as a window.
+- The user then reported these manual receiver checks as passed:
+  - fullscreen apps without a window frame;
+  - moving tasks from the phone;
+  - switching back to a window, and the setting;
+  - touchpad move/tap/tap-drag behavior.
+
+No full ROM was built.
+
 ## Real-device acceptance procedure
 
 1. Deploy the matching new modules (or a full ROM only when explicitly requested), keep the
@@ -360,7 +406,7 @@ Evidence, exact hashes, baseline XML backup and restore instructions are in
    desktop rather than reproducing the phone screen. Verify pointer location, wheel, right
    click, physical keyboard input, focus switching, and Chinese input.
    Open **Wireless desktop touchpad** from Cast settings. Check single-finger movement/tap,
-   long-press drag, two-finger scroll, right click, and external Back/Home. Confirm the phone's
+   tap-then-touch drag, two-finger scroll, right click, and external Back/Home. Confirm the phone's
    bottom swipe-up Home/Overview gestures work before connecting, during connection, while
    using the pad, after leaving it, and after disconnection. Switch between touchpad and a
    hardware mouse; expect one native cursor. Confirm virtual input devices disappear on pad
