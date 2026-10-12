@@ -374,6 +374,56 @@ Results on the live `usbcast-desktop` display 3, with the phone unlocked:
 
 No full ROM was built.
 
+### Follow-up: power key keeps the desktop awake (2026-10-12)
+
+Pressing the phone's power key turned the receiver black. The independent desktop group is
+created with `FLAG_DEFAULT_GROUP_ADJACENT` (`LogicalDisplayMapper`), and
+`PowerManagerService.goToSleep()` sleeps the default group together with every adjacent group.
+The device log showed `Going to sleep due to power_button` followed by
+`Changing state of virtual display usbcast-desktop from ON to OFF`. The screen timeout was
+not affected: with `separate_timeouts` the phone group times out on its own.
+
+`PhoneWindowManager` routes power-key and `KEYCODE_SLEEP` sleep through `goToSleepFromKey()`.
+While an `isIndependentDesktopMode()` display is on and
+`PowerManagerInternal.isAnyDefaultAdjacentGroupInteractive()` is true, it calls
+`PowerManager.goToSleep(DEFAULT_DISPLAY, ...)` instead, so only group 0 sleeps. Everything else
+is the upstream separate-timeouts behavior:
+
+- The keyguard is not signalled while an adjacent group is interactive, so the phone stays
+  unlocked with its screen off. AOD does not start in that state.
+- The next power press wakes the phone. Power-key interactivity is per display, and
+  `wakeUp` wakes the default group and the adjacent groups.
+- The device locks once the desktop group also sleeps (its own user-activity timeout) or is
+  removed (`lock_on_unplug`).
+
+Cast settings has **Keep desktop on when phone screen is off**
+(`Settings.Global` `wifi_display_desktop_keep_awake`, unset/1 = phone screen only, 0 =
+previous behavior). It is read on each key press. Other `goToSleep()` callers keep upstream
+behavior, including Lineage key actions and lid switches. Without an independent desktop
+display, behavior is unchanged.
+
+Build: `JOBS=6 bash tools/build-umi.sh desktop-power` (services and Settings), log
+`out/build-logs/build-umi-20261012-231731-1661507-desktop-power.log`; the R8 contract check
+passed. The `services.jar`/`.art`/`.odex`/`.vdex` and Settings APK/`.odex`/`.vdex` files were
+deployed to the umi overlay with matching hashes, then the framework was restarted. Boot
+image files matched the device. Backups and logs are in `out/desktop-screen-off/20261012-232703/`.
+
+Results on the live `usbcast-desktop` (display 2, group 1, adjacent):
+
+- Two power presses logged `Sleeping the default display only`. Afterwards the virtual
+  display had no ON→OFF transition. Group 0 later woke `from Asleep` on the key, and the
+  keyguard was not showing.
+- The user then reported the receiver behavior as normal.
+
+Not verified on the device:
+
+- the setting at 0;
+- locking at the desktop group's own timeout or on disconnect while the phone is off;
+- the Miracast link.
+
+As in the previous deployment, the framework restart left the phone off Wi-Fi until the user
+reconnected. No full ROM was built.
+
 ## Real-device acceptance procedure
 
 1. Deploy the matching new modules (or a full ROM only when explicitly requested), keep the

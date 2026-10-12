@@ -310,6 +310,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     static final boolean DEBUG_WAKEUP = false;
     static final boolean DEBUG_DREAMS = false;
 
+    // Settings.Global key shared with Cast settings; unset/1 = power key keeps the desktop awake.
+    private static final String WIFI_DISPLAY_DESKTOP_KEEP_AWAKE =
+            "wifi_display_desktop_keep_awake";
+
     // Whether to allow dock apps with METADATA_DOCK_HOME to temporarily take over the Home key.
     // No longer recommended for desk docks;
     static final boolean ENABLE_DESK_DOCK_HOME_CAPTURE = false;
@@ -1546,13 +1550,43 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             }
         }
 
-        goToSleep(eventTime, PowerManager.GO_TO_SLEEP_REASON_POWER_BUTTON, flags);
+        goToSleepFromKey(eventTime, PowerManager.GO_TO_SLEEP_REASON_POWER_BUTTON, flags);
         return true;
     }
 
     private void goToSleep(long eventTime, int reason, int flags) {
         mRequestedOrSleepingDefaultDisplay = true;
         mPowerManager.goToSleep(eventTime, reason, flags);
+    }
+
+    /**
+     * Like {@link #goToSleep}, but while an opt-in Wi-Fi/USB independent desktop is awake only
+     * the default display goes to sleep. Its default-adjacent group stays on, and the device
+     * locks once that group also sleeps or is removed.
+     */
+    private void goToSleepFromKey(long eventTime, int reason, int flags) {
+        if (shouldKeepIndependentDesktopAwake()) {
+            Slog.i(TAG, "Sleeping the default display only; independent desktop stays awake");
+            mRequestedOrSleepingDefaultDisplay = true;
+            mPowerManager.goToSleep(DEFAULT_DISPLAY, eventTime, reason, flags);
+            return;
+        }
+        goToSleep(eventTime, reason, flags);
+    }
+
+    private boolean shouldKeepIndependentDesktopAwake() {
+        // Settings.Global key written by Cast settings; unset/1 keeps the desktop awake.
+        if (Settings.Global.getInt(mContext.getContentResolver(),
+                WIFI_DISPLAY_DESKTOP_KEEP_AWAKE, 1) == 0
+                || !mPowerManagerInternal.isAnyDefaultAdjacentGroupInteractive()) {
+            return false;
+        }
+        for (Display display : mDisplayManager.getDisplays()) {
+            if (display.isIndependentDesktopMode() && Display.isOnState(display.getState())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void shortPressPowerGoHome() {
@@ -1820,7 +1854,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             case SHORT_PRESS_SLEEP_GO_TO_SLEEP:
             case SHORT_PRESS_SLEEP_GO_TO_SLEEP_AND_GO_HOME:
                 Slog.i(TAG, "sleepRelease() calling goToSleep(GO_TO_SLEEP_REASON_SLEEP_BUTTON)");
-                goToSleep(eventTime, PowerManager.GO_TO_SLEEP_REASON_SLEEP_BUTTON, 0);
+                goToSleepFromKey(eventTime, PowerManager.GO_TO_SLEEP_REASON_SLEEP_BUTTON, 0);
                 break;
         }
     }
