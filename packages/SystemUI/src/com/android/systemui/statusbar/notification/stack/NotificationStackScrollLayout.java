@@ -512,6 +512,8 @@ public class NotificationStackScrollLayout
     private final Rect mBackgroundAnimationRect = new Rect();
     private final ArrayList<BiConsumer<Float, Float>> mExpandedHeightListeners = new ArrayList<>();
     private int mHeadsUpInset;
+    private boolean mMetroHeadsUp;
+    private final Paint mMetroHeadsUpCapPaint = new Paint();
 
     /**
      * The position of the scroll boundary relative to this view. This is where the notifications
@@ -1008,6 +1010,7 @@ public class NotificationStackScrollLayout
         mCornerRadius = res.getDimensionPixelSize(R.dimen.notification_corner_radius);
         mHeadsUpInset = mStatusBarHeight + res.getDimensionPixelSize(
                 R.dimen.heads_up_status_bar_padding);
+        mMetroHeadsUp = res.getBoolean(R.bool.config_metroHeadsUp);
         mQsScrollBoundaryPosition = SystemBarUtils.getQuickQsOffsetHeight(mContext);
     }
 
@@ -6730,6 +6733,43 @@ public class NotificationStackScrollLayout
             }
             super.dispatchDraw(canvas);
         }
+        // DIATER-HOOK(metro-ui/sysui.headsup.statusbarcap): the pinned heads up covers the
+        // status bar
+        drawMetroHeadsUpCap(canvas);
+    }
+
+    /**
+     * Fills the status bar area above the top pinned heads up with the heads up's background,
+     * so it reads as one band from the top of the screen like on Windows Phone (metro-ui). The
+     * fill follows the row's position and alpha, so it moves with the appear, disappear and
+     * swipe animations.
+     */
+    private void drawMetroHeadsUpCap(Canvas canvas) {
+        if (!mMetroHeadsUp || !mInHeadsUpPinnedMode) {
+            return;
+        }
+        ExpandableNotificationRow top = null;
+        for (int i = 0; i < getChildCount(); i++) {
+            if (getChildAt(i) instanceof ExpandableNotificationRow row && row.isPinned()
+                    && row.getVisibility() == View.VISIBLE
+                    && (top == null || row.getTranslationY() < top.getTranslationY())) {
+                top = row;
+            }
+        }
+        if (top == null) {
+            return;
+        }
+        int color = top.getCurrentBackgroundTint();
+        int alpha = (int) (Color.alpha(color) * top.getAlpha());
+        if (alpha <= 0) {
+            return;
+        }
+        mMetroHeadsUpCapPaint.setColor(color);
+        mMetroHeadsUpCapPaint.setAlpha(alpha);
+        float left = top.getLeft() + top.getTranslationX();
+        float bottom = top.getTop() + top.getTranslationY();
+        canvas.drawRect(left, bottom - mHeadsUpInset, left + top.getWidth(), bottom,
+                mMetroHeadsUpCapPaint);
     }
 
     private void applyClipToCanvas(Canvas canvas) {

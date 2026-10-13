@@ -105,6 +105,8 @@ public abstract class ActivatableNotificationView extends ExpandableOutlineView 
     private float mAppearAnimationFraction = -1.0f;
     private float mAppearAnimationTranslation;
     protected int mNormalColor;
+    private boolean mMetroHeadsUp;
+    private int mMetroHeadsUpColor;
     protected int mOpaqueColor;
     private boolean mIsBelowSpeedBump;
     private long mLastActionUpTime;
@@ -159,6 +161,9 @@ public abstract class ActivatableNotificationView extends ExpandableOutlineView 
             mNormalColor = mContext.getColor(
                     com.android.internal.R.color.materialColorSurfaceContainerHigh);
         }
+        mMetroHeadsUp = mContext.getResources().getBoolean(R.bool.config_metroHeadsUp);
+        mMetroHeadsUpColor = mContext.getColor(
+                com.android.internal.R.color.materialColorPrimaryContainer);
         mTintedRippleColor = mContext.getColor(
                 R.color.notification_ripple_tinted_color);
         mNormalRippleColor = mContext.getColor(
@@ -180,6 +185,11 @@ public abstract class ActivatableNotificationView extends ExpandableOutlineView 
 
     protected int getNormalBgColor() {
         return mNormalColor;
+    }
+
+    /** Whether a pinned heads up uses the Windows Phone accent style (metro-ui). */
+    protected boolean isMetroHeadsUp() {
+        return mMetroHeadsUp;
     }
 
     /**
@@ -757,6 +767,10 @@ public abstract class ActivatableNotificationView extends ExpandableOutlineView 
         }
         if (withTint && mBgTint != NO_COLOR) {
             return mBgTint;
+        } else if (mMetroHeadsUp && isPinned()) {
+            // DIATER-HOOK(metro-ui/sysui.headsup.accent): a pinned heads up without its own
+            // color uses the accent container color
+            return mMetroHeadsUpColor;
         } else {
             if (Flags.notificationRowTransparency()) {
                 return usesTransparentBackground() ? mNormalColor : mOpaqueColor;

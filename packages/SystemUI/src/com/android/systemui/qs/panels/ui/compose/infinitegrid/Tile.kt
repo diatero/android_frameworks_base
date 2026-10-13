@@ -590,10 +590,14 @@ private object TileDefaults {
         activeCornerRadius: Dp,
         label: String,
     ): State<RoundedCornerShape> {
+        // DIATER-HOOK(metro-ui/sysui.qs.squaretiles): Windows Phone style square tiles
+        val square = resources().getBoolean(R.bool.config_metroSquareTiles)
         val animatedCornerRadius by
             animateDpAsState(
                 targetValue =
-                    if (state == STATE_ACTIVE) {
+                    if (square) {
+                        0.dp
+                    } else if (state == STATE_ACTIVE) {
                         activeCornerRadius
                     } else {
                         InactiveCornerRadius

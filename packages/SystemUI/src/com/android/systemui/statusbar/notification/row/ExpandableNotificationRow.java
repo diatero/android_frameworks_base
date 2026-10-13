@@ -1359,7 +1359,8 @@ public class ExpandableNotificationRow extends ActivatableNotificationView
             setUserExpanded(true);
         }
 
-        if (notificationRowTransparency()) {
+        // DIATER-HOOK(metro-ui/sysui.headsup.accent): the accent color depends on pinning
+        if (notificationRowTransparency() || isMetroHeadsUp()) {
             updateBackgroundTint();
         }
         setChronometerRunning(mLastChronometerRunning);
@@ -1774,7 +1775,8 @@ public class ExpandableNotificationRow extends ActivatableNotificationView
             } else {
                 // For non-colorized notifications, use the semi-transparent normal color token
                 // when the row is transparent, and the opaque color token otherwise.
-                if (!isTransparent && mBgTint == NO_COLOR) {
+                // DIATER-HOOK(metro-ui/sysui.headsup.accent): keep the accent of a pinned heads up
+                if (!isTransparent && mBgTint == NO_COLOR && !(isMetroHeadsUp() && isPinned())) {
                     color = mOpaqueColor;
                 }
             }

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2026 diater
+
+     SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <!-- metro-ui: Windows Phone style heads up notifications. A pinned heads up without its
+         own color uses the accent container color and extends over the status bar. Off by
+         default; a product overlay turns it on. -->
+    <bool name="config_metroHeadsUp">false</bool>
+
+    <!-- metro-ui: square Quick Settings tiles, like the Windows Phone 8.1 action center. -->
+    <bool name="config_metroSquareTiles">false</bool>
+</resources>
