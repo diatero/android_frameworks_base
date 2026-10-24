@@ -144,3 +144,4 @@
 # implementations, or it rewrites casts to throw and calls/results to dead code.
 -keep interface com.android.server.location.VirtualLocationHooks { *; }
 -keep interface com.android.server.location.VirtualLocationHooks$Policy { *; }
+-keep interface com.android.server.am.AppEnvironmentHooks { *; }

@@ -4831,6 +4831,22 @@ public class ActivityManagerService extends IActivityManager.Stub
                     instrumentationWatcher = instr2.mWatcher;
                     instrumentationUiConnection = instr2.mUiAutomationConnection;
                 }
+                Bundle coreSettings = mCoreSettingsObserver.getCoreSettings();
+                // DIATER-HOOK(app-environment/process.profile): Snapshot only, under the AMS lock.
+                final AppEnvironmentHooks environmentHooks =
+                        LocalServices.getService(AppEnvironmentHooks.class);
+                if (environmentHooks != null && !app.isolated && !app.isSdkSandbox) {
+                    try {
+                        Bundle overrides = environmentHooks.getOverrides(appInfo);
+                        if (overrides != null) {
+                            coreSettings = new Bundle(coreSettings);
+                            coreSettings.putBundle(
+                                    android.os.AppEnvironmentOverrides.CORE_SETTINGS_KEY, overrides);
+                        }
+                    } catch (RuntimeException | LinkageError e) {
+                        Slog.e(TAG, "Application environment unavailable", e);
+                    }
+                }
                 thread.bindApplication(
                         processName,
                         appInfo,
@@ -4851,7 +4867,7 @@ public class ActivityManagerService extends IActivityManager.Stub
                         preBindInfo.configuration,
                         app.getCompat(),
                         getCommonServicesLocked(app.isolated),
-                        mCoreSettingsObserver.getCoreSettings(),
+                        coreSettings,
                         buildSerial,
                         autofillOptions,
                         contentCaptureOptions,

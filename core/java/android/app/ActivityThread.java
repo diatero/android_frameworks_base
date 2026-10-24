@@ -1456,6 +1456,14 @@ public final class ActivityThread extends ClientTransactionHandler
             instance.closeFileDescriptor();
             ApplicationSharedMemory.setInstance(instance);
 
+            // DIATER-HOOK(app-environment/process.install): Apply this process's optional profile.
+            try {
+                android.os.AppEnvironmentOverrides.install(coreSettings == null ? null
+                        : coreSettings.getBundle(
+                                android.os.AppEnvironmentOverrides.CORE_SETTINGS_KEY));
+            } catch (RuntimeException | LinkageError e) {
+                Slog.e(TAG, "Application environment unavailable", e);
+            }
             setCoreSettings(coreSettings);
 
             AppBindData data = new AppBindData();
